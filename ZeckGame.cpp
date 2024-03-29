@@ -5,7 +5,7 @@ ZeckGraph::ZeckGraph(int size, int stop) : size(size), stop(stop){
 
 }//EOF constructor
 
-few
+
 void ZeckGraph::makeMoves(GameState*& parent) {
     //Split largest first
     for(int i = parent->bins.size(); i >= 1; --i){

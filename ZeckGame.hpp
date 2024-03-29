@@ -20,8 +20,8 @@ int largestBin(int size) {
 
 struct GameState {
     vector<char> bins;
-    stack<char> type;
-    stack<char> unvisted_links;
+    char type;
+    char unvisted_links;
     bool hasPurple;
     char col;
     list<GameState*> children;
