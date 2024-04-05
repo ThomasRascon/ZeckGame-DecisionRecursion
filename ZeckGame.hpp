@@ -6,6 +6,7 @@
 #include <list>
 #include <stack>
 #include <queue>
+#include <iostream>
 
 using namespace std;
 
@@ -23,10 +24,10 @@ struct VectorCharHash {
 
 struct GameState {
     const vector<char> bins;
-    char type;
-    char unvisted_links;
-    bool purpleChild;
-    bool purpleParent;
+    // char type;
+    // char unvisted_links;
+    // bool purpleChild;
+    // bool purpleParent;
     list<GameState*> children;
     list<GameState*> parents;
 
@@ -55,7 +56,7 @@ struct GameState {
 
         //Helper for start state constructor
         int numBins(int size) {
-            std::vector<int> FIBS = {1, 2, 3, 5, 8, 13, 21, 34, 55, 89}; // Fibonacci numbers.
+            vector<int> FIBS = {1,2,3,5,8,13,21,34,55,89};
             int idx = 1;
             while (size >= FIBS[idx - 1]) {
                 ++idx;
@@ -68,7 +69,7 @@ struct GameState {
 class ZeckGraph {
     private:
         unordered_map<const vector<char>, GameState*, VectorCharHash> gameMap;
-        vector<vector<GameState*>> columns;
+        vector<vector<GameState*> > columns;
         queue<GameState*> stateQue;
         int size;
         int stop;
@@ -106,7 +107,10 @@ class ZeckGraph {
          * param: cols how much columns to generate, -1 if you want all.
          * return: Wheather or not it built successfully
          */
-        bool build();       
-}
+        bool build();
+
+
+        bool color();     
+};
 
 #endif /* ZECK_GRAPH_HPP */

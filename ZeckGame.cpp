@@ -44,10 +44,10 @@ void ZeckGraph::createConnection(GameState* parent, const vector<char> childBins
     GameState* child;
     if(iter == gameMap.end()){
         child = new GameState(childBins);
-        gameMap.insert({childBins, child});
+        gameMap.insert(make_pair(childBins, child));
         int colIdx = size-numTokens(childBins);
         if(colIdx == columns.size()){
-            columns.push_back({});
+            columns.push_back(vector<GameState*>());
         }
         columns[colIdx].push_back(child);
         stateQue.push(child);
@@ -83,7 +83,7 @@ void ZeckGraph::makeMoves(GameState* parent, int roof) {
     
     //Combine 1's third
     int k = 1;
-    while(parent->bins[0] >= 2*k && k <= stop){
+    while(k <= roof && parent->bins[0] >= 2*k && k <= stop){
         const vector<char> childBins = combine(parent->bins, 0, k);
         createConnection(parent, childBins);
         ++k;
@@ -93,6 +93,7 @@ void ZeckGraph::makeMoves(GameState* parent, int roof) {
 
 bool ZeckGraph::build() {
     GameState* start = new GameState(size);
+    columns.push_back({start});
     stateQue.push(start);
 
     while(!stateQue.empty()){
@@ -103,9 +104,32 @@ bool ZeckGraph::build() {
 
     for(const auto& col : columns){
         for(const auto curr : col){
-            makeMoves(curr, float('inf'));
+            makeMoves(curr, numeric_limits<float>::infinity());
         }
     }
+
+    int colIdx = 0;
+    for(const auto& col : columns){
+        cout << "Column " << colIdx << ":" << endl;
+        for(const auto curr : col){
+            cout << "\t";
+            for(int i = curr->bins.size()-1; i >= 0; --i){
+                cout << static_cast<int>(curr->bins[i]) << ",";
+            }
+            cout << endl;
+            //cout << "\t" << curr->parents.size() << endl;
+            for(const auto child : curr->children){
+                cout << "\t\t";
+                for(int i = child->bins.size()-1; i >= 0; --i){
+                    cout << static_cast<int>(child->bins[i]) << ",";
+                }
+                cout << endl;
+            }
+        }
+        colIdx++;
+    }
+
+    return 1;
 }//EOF build
 
 
