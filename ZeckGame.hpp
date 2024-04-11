@@ -24,10 +24,8 @@ struct VectorCharHash {
 
 struct GameState {
     const vector<char> bins;
-    // char type;
-    // char unvisted_links;
-    // bool purpleChild;
-    // bool purpleParent;
+    unsigned short int row;
+    unsigned short int col;
     list<GameState*> children;
     list<GameState*> parents;
 
@@ -66,9 +64,10 @@ struct GameState {
 };//EOF GameState struct
 
 
+typedef unordered_map<const vector<char>, GameState*, VectorCharHash> GameMap;
 class ZeckGraph {
     private:
-        unordered_map<const vector<char>, GameState*, VectorCharHash> gameMap;
+        GameMap gameMap;
         vector<vector<GameState*> > columns;
         queue<GameState*> stateQue;
         int size;
@@ -84,6 +83,13 @@ class ZeckGraph {
          * GameGraph destructor
          */
         ~ZeckGraph();
+
+
+        /**
+         * Retrieves a constant reference to the columns of the Zeckendorf Graph.
+         * return: A constant reference to a vector of pointers to GameState objects.
+         */
+        const vector<vector<GameState*>>* getColumns();
 
 
         /**

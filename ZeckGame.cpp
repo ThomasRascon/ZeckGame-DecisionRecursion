@@ -1,6 +1,11 @@
 #include "ZeckGame.hpp"
 
 
+int row = 0;
+int col = 0;
+int maxCol = 0;
+
+
 vector<char> split(vector<char> bins, int i, int k) {
     bins[i] -= 2*k;
     bins[i+1] += k;
@@ -37,6 +42,11 @@ int numTokens(vector<char> bins) {
 
 
 ZeckGraph::ZeckGraph(int size, int stop) : size(size), stop(stop) {} //EOF constructor
+
+
+const vector<vector<GameState*>>* ZeckGraph::getColumns() {
+    return &columns;
+}//EOF getColumns
 
 
 void ZeckGraph::createConnection(GameState* parent, const vector<char> childBins) {
@@ -95,11 +105,23 @@ bool ZeckGraph::build() {
     GameState* start = new GameState(size);
     columns.push_back({start});
     stateQue.push(start);
+    stateQue.push(nullptr);
 
     while(!stateQue.empty()){
         GameState* curr = stateQue.front();
         stateQue.pop();
-        makeMoves(curr, 1);
+        if(curr == nullptr){
+            if(col > maxCol){
+                maxCol = col;
+            }
+            row += 1;
+            col = 0;
+            stateQue.push(nullptr);
+        }
+        else{
+            col += 1;
+            makeMoves(curr, 1);
+        }
     }
 
     for(const auto& col : columns){
@@ -108,26 +130,26 @@ bool ZeckGraph::build() {
         }
     }
 
-    int colIdx = 0;
-    for(const auto& col : columns){
-        cout << "Column " << colIdx << ":" << endl;
-        for(const auto curr : col){
-            cout << "\t";
-            for(int i = curr->bins.size()-1; i >= 0; --i){
-                cout << static_cast<int>(curr->bins[i]) << ",";
-            }
-            cout << endl;
-            //cout << "\t" << curr->parents.size() << endl;
-            for(const auto child : curr->children){
-                cout << "\t\t";
-                for(int i = child->bins.size()-1; i >= 0; --i){
-                    cout << static_cast<int>(child->bins[i]) << ",";
-                }
-                cout << endl;
-            }
-        }
-        colIdx++;
-    }
+    // int colIdx = 0;
+    // for(const auto& col : columns){
+    //     cout << "Column " << colIdx << ":" << endl;
+    //     for(const auto curr : col){
+    //         cout << "\t";
+    //         for(int i = curr->bins.size()-1; i >= 0; --i){
+    //             cout << static_cast<int>(curr->bins[i]) << ",";
+    //         }
+    //         cout << endl;
+    //         //cout << "\t" << curr->parents.size() << endl;
+    //         for(const auto child : curr->children){
+    //             cout << "\t\t";
+    //             for(int i = child->bins.size()-1; i >= 0; --i){
+    //                 cout << static_cast<int>(child->bins[i]) << ",";
+    //             }
+    //             cout << endl;
+    //         }
+    //     }
+    //     colIdx++;
+    // }
 
     return 1;
 }//EOF build
