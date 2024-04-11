@@ -15,6 +15,29 @@
 
 from tkinter import *
 from tkinter.ttk import *
+import ctypes
+import os
+
+path = os.getcwd()
+clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
+
+# class GraphMap(ctypes.Structure):
+#     pass
+
+# class LocationMap(ctypes.Structure):
+#     pass
+
+class Pair(ctypes.Structure):
+    _fields_ = [("row", ctypes.c_int), ("col", ctypes.c_int)]
+
+clib.build.argtypes = [ctypes.c_int, ctypes.c_int]
+clib.getParents.argtypes = [ctypes.c_int, ctypes.c_int]
+clib.getChildren.argtypes = [ctypes.c_int, ctypes.c_int]
+
+clib.getParents.restype = ctypes.POINTER(Pair)
+clib.getChildren.restype = ctypes.POINTER(Pair)
+clib.getBins.restype = ctypes.POINTER(ctypes.c_char)
+clib.getLocation.restype = ctypes.POINTER(Pair)
 
 def selectedLambda(row, col):
     return lambda: buttonClicked(row, col)
