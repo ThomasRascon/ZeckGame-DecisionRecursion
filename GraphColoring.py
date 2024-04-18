@@ -30,6 +30,9 @@ clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
 class Pair(ctypes.Structure):
     _fields_ = [("row", ctypes.c_int), ("col", ctypes.c_int)]
 
+class Vector(ctypes.Structure):
+    _fields_ = [("data", ctypes.POINTER(Pair)), ("size", ctypes.c_size_t)]
+
 clib.build.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getParents.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getChildren.argtypes = [ctypes.c_int, ctypes.c_int]
@@ -37,7 +40,7 @@ clib.getChildren.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getParents.restype = ctypes.POINTER(Pair)
 clib.getChildren.restype = ctypes.POINTER(Pair)
 clib.getBins.restype = ctypes.POINTER(ctypes.c_char)
-clib.getLocation.restype = ctypes.POINTER(Pair)
+clib.getLocation.restype = Pair
 
 def selectedLambda(row, col):
     return lambda: buttonClicked(row, col)
@@ -237,4 +240,3 @@ textToggler.grid(row=1, column=3, padx=3)
 
                
 root.mainloop()
-

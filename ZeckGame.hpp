@@ -3,45 +3,59 @@
 
 #include <unordered_map>
 #include <functional>
-#include <list>
-#include <stack>
 #include <queue>
-#include <iostream>
-
-using namespace std;
 
 
-struct VectorCharHash {
-    std::size_t operator()(const std::vector<char>& vec) const {
-        std::size_t hash = 0;
-        for (char c : vec) {
-            hash = hash * 31 + c;
+struct Pair {
+    int col;
+    int row;
+};//EOF Pair struct
+
+
+struct PairVector {
+    Pair* data;
+    size_t size;
+};//EOF PairVector struct
+
+
+struct CharVector {
+    const char* data;
+    size_t size;
+};//EOF CharVector struct
+
+
+struct VectorHash {
+    template <typename T>
+    size_t operator()(const std::vector<T>& vec) const {
+        size_t hashValue = 0;
+        for (const T& element : vec) {
+            hashValue = hashValue * 31 + std::hash<T>()(element);
         }
-        return hash;
+        return hashValue;
     }
-};//EOF VectorCharHash struct
+};//EOF VectorHash struct
 
 
 struct GameState {
-    const vector<char> bins;
-    unsigned short int row;
-    unsigned short int col;
-    list<GameState*> children;
-    list<GameState*> parents;
+    const std::vector<char> bins;
+    const Pair location;
+    std::vector<Pair> children;
+    std::vector<Pair> parents;
 
 
     /**
      * Constructor for the start state.
      * param: size The game size.
      */
-    GameState(int size) : bins(createBins(size)) {} //EOF constructor
+    GameState(int size) : bins(createBins(size)), location(Pair{0,0}){} //EOF constructor
 
 
     /**
      * Override constructor for the non-start states.
      * param: bins The bins of the state to be constructed.
      */
-    GameState(const vector<char>& bins) : bins(bins) {} //EOF override-constructor
+    GameState(const std::vector<char>& bins, int col, int row) :
+        bins(bins), location(Pair{col,row}) {} //EOF override-constructor
 
     private:
         //Helper for start state constructor
@@ -54,7 +68,7 @@ struct GameState {
 
         //Helper for start state constructor
         int numBins(int size) {
-            vector<int> FIBS = {1,2,3,5,8,13,21,34,55,89};
+            std::vector<int> FIBS = {1,2,3,5,8,13,21,34,55,89};
             int idx = 1;
             while (size >= FIBS[idx - 1]) {
                 ++idx;
@@ -64,12 +78,13 @@ struct GameState {
 };//EOF GameState struct
 
 
-typedef unordered_map<const vector<char>, GameState*, VectorCharHash> GameMap;
+typedef std::unordered_map<const std::vector<char>, GameState*, VectorHash> GameMap;
+typedef std::unordered_map<std::vector<int>, GameState*, VectorHash> LocationMap;
 class ZeckGraph {
     private:
         GameMap gameMap;
-        vector<vector<GameState*> > columns;
-        queue<GameState*> stateQue;
+        std::vector<std::vector<GameState*>> columns;
+        std::queue<GameState*> stateQue;
         int size;
         int stop;
 
@@ -86,18 +101,11 @@ class ZeckGraph {
 
 
         /**
-         * Retrieves a constant reference to the columns of the Zeckendorf Graph.
-         * return: A constant reference to a vector of pointers to GameState objects.
-         */
-        const vector<vector<GameState*>>* getColumns();
-
-
-        /**
          * Connectes given game state to the game state passed as array.
          * param: parent The game state we are moving from.
          * param: childBins The bins of the child we are moving to.
          */
-        void createConnection(GameState* parent, const vector<char> childBins);
+        void createConnection(GameState* parent, const std::vector<char> childBins);
 
 
         /**
@@ -116,7 +124,7 @@ class ZeckGraph {
         bool build();
 
 
-        bool color();     
+        std::vector<std::vector<GameState*>>& getColumns();         
 };
 
 #endif /* ZECK_GRAPH_HPP */
