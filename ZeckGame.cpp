@@ -68,10 +68,18 @@ void ZeckGraph::createConnection(GameState* parent, const vector<char> childBins
 }//EOF createConnection
 
 
+int getK(int roof) {
+    if(roof == 1){
+        return 1;
+    }
+    return 2;
+}
+
+
 void ZeckGraph::makeMoves(GameState* parent, int roof) {
     //Split largest to smallest
     for(int i = parent->bins.size() - 2; i > 0; --i){
-        int k = 1;
+        int k = getK(roof);
         while(k <= roof && parent->bins[i] >= 2*k){
             const vector<char> childBins = split(parent->bins, i, k);
             createConnection(parent, childBins);
@@ -81,7 +89,7 @@ void ZeckGraph::makeMoves(GameState* parent, int roof) {
 
     //Combine largest to smallest
     for(int i = parent->bins.size() - 2; i > 0; --i){
-        int k = 1;
+        int k = getK(roof);
         while(k <= roof && parent->bins[i] >= k && parent->bins[i-1] >= k) {
             const vector<char> childBins = combine(parent->bins, i, k);
             createConnection(parent, childBins);
@@ -90,7 +98,7 @@ void ZeckGraph::makeMoves(GameState* parent, int roof) {
     }
 
     //Combine 1's
-    int k = 1;
+    int k = getK(roof);
     while(k <= roof && parent->bins[0] >= 2*k && k <= stop){
         const vector<char> childBins = combine(parent->bins, 0, k);
         createConnection(parent, childBins);
@@ -125,6 +133,9 @@ bool ZeckGraph::build() {
                 cout << static_cast<int>(curr->bins[i]) << ",";
             }
             cout << endl;
+            for(auto childLoc : curr->children){
+                cout << "\t\t" << childLoc.col << " " << childLoc.row << endl;
+            }
         }
         colIdx++;
     }

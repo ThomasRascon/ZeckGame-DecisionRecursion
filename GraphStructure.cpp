@@ -17,11 +17,7 @@ extern "C" void build(int size, int stop) {
 }//EOF build
 
 
-extern "C" void printGraph() {
-}
-
-
-extern "C" PairVector getParents(int row, int col) {
+extern "C" PairVector getParents(int col, int row) {
     if(col < 0 || row < 0 || col >= columns.size() || row >= columns[col].size()){
         printf("Did not find location.");
         exit(1);
@@ -31,7 +27,7 @@ extern "C" PairVector getParents(int row, int col) {
 }//EOF getParents
 
 
-extern "C" PairVector getChildren(int row, int col) {
+extern "C" PairVector getChildren(int col, int row) {
     if(col < 0 || row < 0 || col >= columns.size() || row >= columns[col].size()){
         printf("Did not find location.");
         exit(1);
@@ -41,23 +37,27 @@ extern "C" PairVector getChildren(int row, int col) {
 }//EOF getChildren
 
 
-extern "C" CharVector getBins() {
-    GameState* curr = columns[curr_col][curr_row];
-    return CharVector{curr->bins.data(), curr->bins.size()};
-}//EOF getBins
+extern "C" int columnHeight(int colIdx) {
+    return columns[colIdx].size();
+}//EOF columnHeight
 
 
-extern "C" Pair getLocation() {
+extern "C" bool moreStates() {
+    return curr_col < columns.size();
+}//EOF moreStates
+
+
+extern "C" CharVector getState() {
     GameState* curr = columns[curr_col][curr_row];
     curr_row += 1;
     if(curr_row == columns[curr_col].size()){
         curr_col += 1;
         curr_row = 0;
     }
-    return curr->location;
-}//EOF getLocation
+    return CharVector{curr->bins.data(), curr->bins.size(), curr->location};
+}//EOF getState
 
 
-void deallocate() {
+extern "C" void deallocate() {
     delete graph;
 }//EOF deallocate

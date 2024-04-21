@@ -21,26 +21,45 @@ import os
 path = os.getcwd()
 clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
 
-# class GraphMap(ctypes.Structure):
-#     pass
-
-# class LocationMap(ctypes.Structure):
-#     pass
-
 class Pair(ctypes.Structure):
-    _fields_ = [("row", ctypes.c_int), ("col", ctypes.c_int)]
+    _fields_ = [("col", ctypes.c_int), ("row", ctypes.c_int)]
 
-class Vector(ctypes.Structure):
+class PairVector(ctypes.Structure):
     _fields_ = [("data", ctypes.POINTER(Pair)), ("size", ctypes.c_size_t)]
+
+class CharVector(ctypes.Structure):
+    _fields_ = [("data", ctypes.POINTER(ctypes.c_char)),
+                ("size", ctypes.c_size_t),
+                ("location", Pair)]
 
 clib.build.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getParents.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getChildren.argtypes = [ctypes.c_int, ctypes.c_int]
+clib.columnHeight.argtypes = [ctypes.c_int]
 
-clib.getParents.restype = ctypes.POINTER(Pair)
-clib.getChildren.restype = ctypes.POINTER(Pair)
-clib.getBins.restype = ctypes.POINTER(ctypes.c_char)
-clib.getLocation.restype = Pair
+clib.getParents.restype = PairVector
+clib.getChildren.restype = PairVector
+clib.getState.restype = CharVector
+clib.columnHeight.restype = ctypes.c_int
+
+# parents = clib.getParents(1,3)
+# this gives you the "list" of the locations (as Pairs) of the parents of the
+# state in (actual) position 1col, 3row
+# for i in range(parents.size):
+#     print(parents.data[i].col, parents.data[i].row)
+# parents.data[i] gives you the ith parent of this state
+# parents.data[i].col gives you the (actual) col of the ith parent of this state
+# parents.data[i].row gives you the (actual) row of the ith parent of this state
+
+# while clib.moreStates():
+#     state = clib.getState()
+#     bins = ""
+#     for i in range(state.size):
+#         bins += state.bins[i] + ", "
+#     print(state.location.col, state.location.row)
+
+# columnHeight = clib.columnHeight(3)
+
 
 def selectedLambda(row, col):
     return lambda: buttonClicked(row, col)
@@ -240,3 +259,5 @@ textToggler.grid(row=1, column=3, padx=3)
 
                
 root.mainloop()
+
+clib.deallocate()

@@ -21,6 +21,7 @@ struct PairVector {
 struct CharVector {
     const char* data;
     size_t size;
+    Pair location;
 };//EOF CharVector struct
 
 
