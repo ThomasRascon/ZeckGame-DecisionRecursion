@@ -18,11 +18,11 @@ struct PairVector {
 };//EOF PairVector struct
 
 
-struct CharVector {
-    const char* data;
+struct State {
+    const char* bins;
     size_t size;
     Pair location;
-};//EOF CharVector struct
+};//EOF State struct
 
 
 struct VectorHash {

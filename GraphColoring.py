@@ -27,8 +27,8 @@ class Pair(ctypes.Structure):
 class PairVector(ctypes.Structure):
     _fields_ = [("data", ctypes.POINTER(Pair)), ("size", ctypes.c_size_t)]
 
-class CharVector(ctypes.Structure):
-    _fields_ = [("data", ctypes.POINTER(ctypes.c_char)),
+class State(ctypes.Structure):
+    _fields_ = [("bins", ctypes.POINTER(ctypes.c_char)),
                 ("size", ctypes.c_size_t),
                 ("location", Pair)]
 
@@ -39,7 +39,7 @@ clib.columnHeight.argtypes = [ctypes.c_int]
 
 clib.getParents.restype = PairVector
 clib.getChildren.restype = PairVector
-clib.getState.restype = CharVector
+clib.getState.restype = State
 clib.columnHeight.restype = ctypes.c_int
 
 # parents = clib.getParents(1,3)
