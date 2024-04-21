@@ -47,14 +47,17 @@ extern "C" bool moreStates() {
 }//EOF moreStates
 
 
-extern "C" CharVector getState() {
+extern "C" State getState() {
+    if(curr_row==0){
+        cout << endl << "COLUMN: " << curr_col << endl;
+    }
     GameState* curr = columns[curr_col][curr_row];
     curr_row += 1;
     if(curr_row == columns[curr_col].size()){
         curr_col += 1;
         curr_row = 0;
     }
-    return CharVector{curr->bins.data(), curr->bins.size(), curr->location};
+    return State{curr->bins.data(), curr->bins.size(), curr->location};
 }//EOF getState
 
 
