@@ -124,7 +124,10 @@ class ZeckGraph {
          */
         bool build();
 
-
+        /**
+         * Returns reference to the columns vector, which is the graph structure.
+         * return: reference to ZeckGraph's 'Columns' attribute.
+         */
         std::vector<std::vector<GameState*>>& getColumns();         
 };
 

@@ -25,7 +25,8 @@ class Pair(ctypes.Structure):
     _fields_ = [("col", ctypes.c_int), ("row", ctypes.c_int)]
 
 class PairVector(ctypes.Structure):
-    _fields_ = [("data", ctypes.POINTER(Pair)), ("size", ctypes.c_size_t)]
+    _fields_ = [("data", ctypes.POINTER(Pair)),
+                ("size", ctypes.c_size_t)]
 
 class State(ctypes.Structure):
     _fields_ = [("bins", ctypes.POINTER(ctypes.c_char)),
@@ -51,12 +52,34 @@ clib.columnHeight.restype = ctypes.c_int
 # parents.data[i].col gives you the (actual) col of the ith parent of this state
 # parents.data[i].row gives you the (actual) row of the ith parent of this state
 
+
+# NOTE: state.bins[i] (the ith bin in state) is type ctypes.c_char
+# must do ord(state.bins[i]) to turn into int and str(ord(state.bins[i]))
+# to turn it into a string.
+# The following block of code iterates through all states and prints out:
+# 1. Their bins array and location in the graph (lines 66-71). Iterate
+# through bins in reverse order to see most significant bit first
+# which is the largest bin (see line 68).
+# 2. The location of all of their parents (lines 73-76).
+# 3. The location of all of their children (lines 78-81).
 # while clib.moreStates():
 #     state = clib.getState()
 #     bins = ""
-#     for i in range(state.size):
-#         bins += state.bins[i] + ", "
-#     print(state.location.col, state.location.row)
+#     for i in range(state.size - 1, -1, -1):
+#         bins += str(ord(state.bins[i])) + ","
+#     bins = bins[:-1]
+#     print(" ", bins, " ", state.location.col, state.location.row)
+
+#     parents = clib.getParents(state.location.col, state.location.row)
+#     print("    Parents:")
+#     for i in range(parents.size):
+#         print("     ", parents.data[i].col, parents.data[i].row)
+
+#     children = clib.getChildren(state.location.col, state.location.row)
+#     print("    Children:")
+#     for i in range(children.size):
+#         print("     ", children.data[i].col, children.data[i].row)
+
 
 # columnHeight = clib.columnHeight(3)
 
