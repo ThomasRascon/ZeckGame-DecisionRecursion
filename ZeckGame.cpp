@@ -121,7 +121,7 @@ bool ZeckGraph::build() {
 
     for(const auto& p : gameMap){
         GameState* curr = p.second;
-        makeMoves(curr, numeric_limits<float>::infinity());
+        makeMoves(curr, 10000);
     }
 
     // int colIdx = 0;
