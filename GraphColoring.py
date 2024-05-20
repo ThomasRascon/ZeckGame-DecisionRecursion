@@ -168,7 +168,6 @@ def showArrows(col,row):
     deleteArrows()
     
     children = clib.getChildren(col, row)
-    #for connection in children[col][row]:
     for i in range(children.size):
         connection = children.data[i]
 
@@ -258,7 +257,9 @@ def giveColor(color):
     buttons[yellow_button[0]][yellow_button[1]].configure(style=color)
 
     if (color == "Purple.TButton"):
-       for connection in children[yellow_button[0]][yellow_button[1]]:
+        children = clib.getChildren(yellow_button[0], yellow_button[1])
+        for i in range(children.size):  
+           connection = children.data[i]
            if (buttons[connection.col][connection.row]["style"] == "Purple.TButton"):
                buttons[connection.col][connection.row].configure(style="Red.TButton")
            else:
