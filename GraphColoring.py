@@ -15,6 +15,7 @@
 
 from tkinter import *
 from tkinter.ttk import *
+import numpy as np
 import ctypes
 import os
 
@@ -83,6 +84,33 @@ clib.columnHeight.restype = ctypes.c_int
 
 # columnHeight = clib.columnHeight(3)
 
+bins = []
+parents = []
+children = []
+tempCol = -1
+
+clib.build(20,0)
+while clib.moreStates():
+     state = clib.getState()
+
+     tempBins = ""
+     for i in range(state.size - 1, -1, -1):
+         tempBins += str(ord(state.bins[i])) + ","
+     tempBins = tempBins[:-1]
+
+     # Add new element for current bin
+     # If we are on a new col, add new list 
+     # for that col
+     if tempCol != state.location.col:
+         bins.append([])
+         parents.append([])
+         children.append([])
+     tempCol = state.location.col 
+
+
+     bins[state.location.col].append(tempBins)
+     
+
 
 def selectedLambda(row, col):
     return lambda: buttonClicked(row, col)
@@ -94,8 +122,13 @@ def buttonClicked(n, m):
 
     global yellow_button
     global temp_style
+    global buttonWidth
+    global buttonHeight
+    global grid_x 
+    global grid_y
 
     print("Button (", n, ", ", m, ") clicked")
+    showArrows(n,m)
 
     # Overall, what these conditionals do is as follows:
         # If there was a yellow button when you clicked, 
@@ -115,14 +148,105 @@ def buttonClicked(n, m):
     else: 
         temp_style = buttons[n][m]["style"]
     
-    buttons[n][m].configure(style="yellow.TButton")
+    buttons[n][m].configure(style="YellowBorder"+temp_style)
     yellow_button = [n, m]
+
+def deleteArrows():
+    
+    for arrowColList in arrows:
+        for arrowRowList in arrowColList:
+            for arrow in arrowRowList:
+                canvas.delete(arrow)
+                
+    for ovalColList in ovals:
+        for ovalRowList in ovalColList:
+            for oval in ovalRowList:
+                canvas.delete(oval)
+
+def showArrows(col,row):
+
+    deleteArrows()
+    
+    children = clib.getChildren(col, row)
+    #for connection in children[col][row]:
+    for i in range(children.size):
+        connection = children.data[i]
+
+        
+        A_x = (connection.col - col)*(grid_x)-.5*buttonWidth
+        if connection.col == col:
+            A_x = 0
+
+        A_y = (connection.row - row)*(grid_y)
+        
+        a_y = buttonHeight*np.sign(A_y)/2
+        if A_y == 0: 
+            a_x = buttonWidth/2
+        else:
+            a_x = A_x*a_y/A_y 
+
+
+        if a_x > buttonWidth/2:
+            a_x = buttonWidth/2
+            a_y = A_y*a_x/A_x
+        
+
+        circ_x = grid_x*col + buttonWidth/2 + a_x
+        circ_y = grid_y*row + buttonHeight/2 + a_y
+        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r))
+
+
+        if col == connection.col and row < connection.row: # forward connection below
+            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x+buttonWidth/2, connection.row*grid_y, arrow=LAST))
+        elif col == connection.col and row > connection.row: # forward connection above
+            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight, arrow=LAST))
+        elif row == connection.row and col < connection.col: # forward connection to the right
+            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x, connection.row*grid_y+buttonHeight/2, arrow=LAST))
+        elif (col < connection.col): # forward connection below to the right
+            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x, connection.row*grid_y+buttonHeight/2, arrow=LAST))
+
+    parents = clib.getParents(col, row)
+    for i in range(parents.size):
+        connection = parents.data[i]
+        
+        A_x = (col - connection.col)*(grid_x)-.5*buttonWidth
+        if connection.col == col:
+            A_x = 0
+
+        A_y = (row - connection.row)*(grid_y)
+        
+        a_y = buttonHeight*np.sign(A_y)/2
+        if A_y == 0: 
+            a_x = buttonWidth/2
+        else:
+            a_x = A_x*a_y/A_y 
+
+
+        if a_x > buttonWidth/2:
+            a_x = buttonWidth/2
+            a_y = A_y*a_x/A_x
+        
+        circ_x = grid_x*connection.col + buttonWidth/2 + a_x
+        circ_y = grid_y*connection.row + buttonHeight/2 + a_y
+        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r))
+
+
+        if col == connection.col and row < connection.row: # backward connection below
+            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x+buttonWidth/2, row*grid_y+buttonHeight, arrow=LAST))
+        elif col == connection.col and row > connection.row: # backward connection above
+            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x+buttonWidth/2, row*grid_y+buttonHeight, arrow=LAST))
+        elif row == connection.row and col > connection.col: # backward connection to the left
+            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x, row*grid_y+buttonHeight/2, arrow=LAST))
+        elif (col > connection.col): # forward connection above to the left
+            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x, row*grid_y+buttonHeight/2, arrow=LAST))
+
+         
     
 
 def giveColor(color):
+
     global yellow_button
     global temp_style
-    print(temp_style)
 
     # If you assign the same color to a button twice, it becomes blue again
     if (temp_style == color):
@@ -132,8 +256,20 @@ def giveColor(color):
     
     temp_style = color
     buttons[yellow_button[0]][yellow_button[1]].configure(style=color)
+
+    if (color == "Purple.TButton"):
+       for connection in children[yellow_button[0]][yellow_button[1]]:
+           if (buttons[connection.col][connection.row]["style"] == "Purple.TButton"):
+               buttons[connection.col][connection.row].configure(style="Red.TButton")
+           else:
+               buttons[connection.col][connection.row].configure(style="Green.TButton")
+
+    if (color != "Light Blue.TButton" and color != temp_style):
+        buttons[yellow_button[0]][yellow_button[1]].configure(style="Red.TButton")
+
     yellow_button = None
 
+   
 
 def toggleGuess():
     global temp_style
@@ -159,14 +295,19 @@ def on_configure(event):
 
 
 
-col_tot = 10
-row_tot = 10
-r = 3 # circle radius for base of arrows
+col_tot = len(bins)
+row_tot = 1000
+r = 5 # circle radius for base of arrows
+buttonHeight = 30
+buttonWidth = 100
+grid_x = 120
+grid_y = 50
 
 buttons = [[None]*row_tot for i in range(col_tot)]
 button_frames = []
 connections = [[[]]*row_tot for i in range(col_tot)]
-arrows = [[None]*row_tot for i in range(col_tot)]
+arrows = [[[]]*row_tot for i in range(col_tot)]
+ovals =  [[[]]*row_tot for i in range(col_tot)]
 
 
 
@@ -177,7 +318,7 @@ temp_style = None
 
 # Create primary window
 root = Tk()
-root.geometry("400x400")
+root.geometry("1000x500")
 root.configure(background="light grey")
 
 
@@ -209,59 +350,38 @@ style.theme_use("clam")
 # Add styles
 style.configure('TButton', bordercolor='black', borderwidth=3)
 
-colors = ["yellow", "Light Blue", "Green", "Purple", "Red"]
+colors = ["Light Blue", "Green", "Purple", "Red"]
 style.map('TButton',background=[('active',"dark grey")],foreground=[('active','black'),('!disabled',"black")])
 for color in colors:
 
-    style.configure(color+".TButton", bordercolor='black', borderwidth=3)
+    style.configure(color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
     style.map(color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
 
-    style.configure("Guess"+color+".TButton", bordercolor='red', borderwidth=3)
-    style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
+    style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
+    style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","red"),("!disabled","red")])
 
+    style.configure("YellowBorder"+color+".TButton", bordercolor='magenta', borderwidth=3, font=('Helvetica', 10))
+    style.map("YellowBorder"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
 
 # Create and place buttons
-for col in range(col_tot):
-    for row in range (row_tot):
-        
-        buttons[col][row] = Button(canvas, style="Light Blue.TButton", text = "button "+ str(col) + ", " + str(row), 
+for col in range(len(bins)):
+    buttons.append([])
+    for row in range (len(bins[col])):
+        buttons[col].append([])
+
+        # to change button text to indices replace argument of text with 
+        # 
+        buttons[col][row] = Button(canvas, style="Light Blue.TButton", text = bins[col][row], 
                                   command = selectedLambda(col, row), takefocus=True)
-        buttons[col][row].place(x=100*col, y= 50*row)
+        buttons[col][row].grid(row=0, column=0)
 
         # This is needed to make buttons scrollable
-        canvas.create_window((100*col, 50*row), window=buttons[col][row], anchor="nw")   
+        canvas.create_window((grid_x*col, grid_y*row), window=buttons[col][row], height=buttonHeight, width=buttonWidth, anchor="nw")   
+
+        # uncomment to see all connections on initialization
+        # showArrows(col,row)
 
 
-# Example connections
-connections[0][0] = [[0,1],[1,1],[0,5],[1,2],[3,0],[3,1]]
-connections[2][3] = [[3,3],[4,5],[2,1],[2,5]]
-
-# Create and place arrows 
-for col in range(col_tot):
-    for row in range(row_tot):
-        arrows[col][row] = []
-        for connection in connections[col][row]:
-            if col == connection[0] and row < connection[1]: # forward connection below
-                arrows[col][row].append(canvas.create_line(col*100+40, row*50+16, connection[0]*100+40, connection[1]*50, arrow=LAST))
-                circ_x = col*100+40
-                circ_y = row*50+32+r
-                canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r)
-            elif col == connection[0] and row > connection[1]: # forward connection above
-                arrows[col][row].append(canvas.create_line(col*100+40, row*50+16, connection[0]*100+40, connection[1]*50+32, arrow=LAST))
-                circ_x = col*100+40
-                circ_y = row*50-r
-                canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r)
-            elif row == connection[1] and col < connection[0]: # forward connection to the right
-                arrows[col][row].append(canvas.create_line(col*100+40, row*50+16, connection[0]*100, connection[1]*50+16, arrow=LAST))
-                circ_x = col*100+83+r
-                circ_y = row*50+16
-                canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r)
-            else:    
-                if (col < connection[0]): # forward connection below to the right
-                    arrows[col][row].append(canvas.create_line(col*100+40, row*50+16, connection[0]*100, connection[1]*50+16, arrow=LAST))
-                    circ_x = col*100+40+(16+r)*((connection[0]-col)*100-40)/(50*(connection[1]-row))
-                    circ_y = row*50+32+r
-                    canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r)
 
 # Create secondary window
 root2 = Toplevel(root)
@@ -274,7 +394,9 @@ colorGreen = Button(root2, style="Green.TButton", text = "Color Green",
 colorPurple = Button(root2, style="Purple.TButton", text = "Color purple", 
                     command = giveColorLambda("Purple.TButton"))
 textToggler = Button(root2, text = "Flag Guess", 
-                    command = toggleGuess)
+                    command = toggleGuess)  
+
+ 
 
 colorGreen.grid(row=1, column=1, padx=3)
 colorPurple.grid(row=1, column=2, padx=3)
