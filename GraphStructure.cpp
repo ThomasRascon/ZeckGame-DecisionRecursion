@@ -11,28 +11,28 @@ static vector<vector<GameState*>> columns;
 
 
 extern "C" void build(int size, int stop) {
-    graph = new ZeckGraph(11, numeric_limits<float>::infinity());
+    graph = new ZeckGraph(size, 10000);
     graph->build();
     columns = graph->getColumns();
 }//EOF build
 
 
 extern "C" PairVector getParents(int col, int row) {
-    if(col < 0 || row < 0 || col >= columns.size() || row >= columns[col].size()){
+    if(col < 0 || row < 0 || col >= columns.size() || row >= columns[columns[curr_col].size()-col].size()){
         printf("Did not find location.");
         exit(1);
     }
-    GameState* state = columns[col][row];
+    GameState* state = columns[columns[curr_col].size()-col][row];
     return PairVector{state->parents.data(), state->parents.size()};
 }//EOF getParents
 
 
 extern "C" PairVector getChildren(int col, int row) {
-    if(col < 0 || row < 0 || col >= columns.size() || row >= columns[col].size()){
+    if(col < 0 || row < 0 || col >= columns.size() || row >= columns[columns[curr_col].size()-col].size()){
         printf("Did not find location.");
         exit(1);
     }
-    GameState* state = columns[col][row];
+    GameState* state = columns[columns[curr_col].size()-col][row];
     return PairVector{state->children.data(), state->children.size()};
 }//EOF getChildren
 
@@ -48,14 +48,11 @@ extern "C" bool moreStates() {
 
 
 extern "C" State getState() {
-    if(curr_row==0){
-        cout << endl << "COLUMN: " << curr_col << endl;
-    }
     GameState* curr = columns[curr_col][curr_row];
-    curr_row += 1;
+    curr_row -= 1;
     if(curr_row == columns[curr_col].size()){
         curr_col += 1;
-        curr_row = 0;
+        curr_row = columns[curr_col].size();
     }
     return State{curr->bins.data(), curr->bins.size(), curr->location};
 }//EOF getState
