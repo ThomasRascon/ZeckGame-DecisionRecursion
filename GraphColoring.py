@@ -354,7 +354,7 @@ scrollbarx = Scrollbar(root, orient="horizontal", command=on_scrollx)
 scrollbarx.pack(side="bottom", fill="x")
 
 # Create a Canvas widget
-canvas = Canvas(root, bg="grey")
+canvas = Canvas(root, bg="light grey")
 canvas.pack(side="top", fill="both", expand=True)
 
 
