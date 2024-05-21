@@ -6,11 +6,18 @@
 #          next move move 19a
 # 2.) Clicking a node highlights forward connection and backward 
 #     connection edges and nodes
-# 3.) Generate with no connections/ toggle showing connections
-# 4.) Click state to select, click color to color 
-# 5.) Button for coloring all children and parents green (don't double color)
+#[3.)] Generate with no connections/ toggle showing connections
+#[4.)]Click state to select, click color to color 
+#[5.)]Button for coloring all children and parents green (don't double color)
 # 6.) Undo button (visually restore, and delete from history)
-# 7.) Option for visually distinguishing guesses
+#[7.)]Option for visually distinguishing guesses
+#
+# Keyboard Controls:
+# z colors green, x color purple, c toggles guess,
+# s toggles variable "show", which determines if clicking a button 
+# erases all arrows on screen, which is on by default, meaning that 
+# arrows will not get erased when clicking,
+# a shows all arrows for all connections
 
 
 from tkinter import *
@@ -44,112 +51,34 @@ clib.getChildren.restype = PairVector
 clib.getState.restype = State
 clib.columnHeight.restype = ctypes.c_int
 
-# parents = clib.getParents(1,3)
-# this gives you the "list" of the locations (as Pairs) of the parents of the
-# state in (actual) position 1col, 3row
-# for i in range(parents.size):
-#     print(parents.data[i].col, parents.data[i].row)
-# parents.data[i] gives you the ith parent of this state
-# parents.data[i].col gives you the (actual) col of the ith parent of this state
-# parents.data[i].row gives you the (actual) row of the ith parent of this state
+# First index is the number of tokens in the first bin 
+# on the initial state
+clib.build(11,0)
 
-
-# NOTE: state.bins[i] (the ith bin in state) is type ctypes.c_char
-# must do ord(state.bins[i]) to turn into int and str(ord(state.bins[i]))
-# to turn it into a string.
-# The following block of code iterates through all states and prints out:
-# 1. Their bins array and location in the graph (lines 66-71). Iterate
-# through bins in reverse order to see most significant bit first
-# which is the largest bin (see line 68).
-# 2. The location of all of their parents (lines 73-76).
-# 3. The location of all of their children (lines 78-81).
-# while clib.moreStates():
-#     state = clib.getState()
-#     bins = ""
-#     for i in range(state.size - 1, -1, -1):
-#         bins += str(ord(state.bins[i])) + ","
-#     bins = bins[:-1]
-#     print(" ", bins, " ", state.location.col, state.location.row)
-
-#     parents = clib.getParents(state.location.col, state.location.row)
-#     print("    Parents:")
-#     for i in range(parents.size):
-#         print("     ", parents.data[i].col, parents.data[i].row)
-
-#     children = clib.getChildren(state.location.col, state.location.row)
-#     print("    Children:")
-#     for i in range(children.size):
-#         print("     ", children.data[i].col, children.data[i].row)
-
-
-# columnHeight = clib.columnHeight(3)
-
-bins = []
-parents = []
-children = []
-tempCol = -1
-
-clib.build(20,0)
-while clib.moreStates():
-     state = clib.getState()
-
-     tempBins = ""
-     for i in range(state.size - 1, -1, -1):
-         tempBins += str(ord(state.bins[i])) + ","
-     tempBins = tempBins[:-1]
-
-     # Add new element for current bin
-     # If we are on a new col, add new list 
-     # for that col
-     if tempCol != state.location.col:
-         bins.append([])
-         parents.append([])
-         children.append([])
-     tempCol = state.location.col 
-
-
-     bins[state.location.col].append(tempBins)
-     
-
-
-def selectedLambda(row, col):
-    return lambda: buttonClicked(row, col)
-
-def giveColorLambda(color):
-    return lambda: giveColor(color)
-
-def buttonClicked(n, m):
-
-    global yellow_button
-    global temp_style
-    global buttonWidth
-    global buttonHeight
-    global grid_x 
-    global grid_y
-
-    print("Button (", n, ", ", m, ") clicked")
-    showArrows(n,m)
-
-    # Overall, what these conditionals do is as follows:
-        # If there was a yellow button when you clicked, 
-        # return it to its original style
-        # If the button you clicked was already yellow,
-        # it has been set to its original color, so there 
-        # is no longer a yellow button.
-        # Otherwise save the clicked button's style and 
-        # make it yellow
-
-    if yellow_button != None:
-        buttons[yellow_button[0]][yellow_button[1]].configure(style=temp_style)
-
-    if yellow_button == [n,m]:
-        yellow_button = None 
-        return 
-    else: 
-        temp_style = buttons[n][m]["style"]
+# Keyboard controlled events
+def keyPressed(event):
     
-    buttons[n][m].configure(style="YellowBorder"+temp_style)
-    yellow_button = [n, m]
+    global show
+    
+    match event.char:
+        case "z":
+            giveColor("Green.TButton")
+        case "x":
+            giveColor("Purple.TButton")
+        case "c":
+            toggleGuess()
+        case "s": # toggle show
+            show = not show
+        case "a": 
+            showAllArrows()
+
+# Functions related to arrow and button placement 
+
+def button_x(col, row):
+    col*grid_x
+
+def button_y(col, row):
+    row*grid_y
 
 def deleteArrows():
     
@@ -163,20 +92,45 @@ def deleteArrows():
             for oval in ovalRowList:
                 canvas.delete(oval)
 
-def showArrows(col,row):
+def showArrows(col,row,show):
 
-    deleteArrows()
+    if not show:
+        deleteArrows()
     
     children = clib.getChildren(col, row)
     for i in range(children.size):
-        connection = children.data[i]
+        child = children.data[i]
 
-        
-        A_x = (connection.col - col)*(grid_x)-.5*buttonWidth
-        if connection.col == col:
-            A_x = 0
+        # maxColHeight-colHeight+row
+        colHeightChild = len(buttons[child.col])
+        colHeightButton = len(buttons[col])
 
-        A_y = (connection.row - row)*(grid_y)
+        if col == child.col and row < child.row: # forward child below
+            arrowStart_x = col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
+            arrowEnd_x   = child.col*grid_x+buttonWidth/2
+            arrowEnd_y   = (maxColHeight-colHeightChild+child.row)*grid_y
+        elif col == child.col and row > child.row: # forward child above
+            arrowStart_x = col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
+            arrowEnd_x   = child.col*grid_x+buttonWidth/2
+            arrowEnd_y   = (maxColHeight-colHeightChild+child.row)*grid_y+buttonHeight
+        elif row == child.row and col < child.col: # forward child to the right
+            arrowStart_x = col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
+            arrowEnd_x   = child.col*grid_x
+            arrowEnd_y   = (maxColHeight-colHeightChild+child.row)*grid_y+buttonHeight/2
+        elif (col < child.col): # forward child below to the right
+            arrowStart_x = col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
+            arrowEnd_x   = child.col*grid_x
+            arrowEnd_y   = (maxColHeight-colHeightChild+child.row)*grid_y+buttonHeight/2
+
+        arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST, fill="white"))
+
+
+        A_x = arrowEnd_x - arrowStart_x
+        A_y = arrowEnd_y - arrowStart_y
         
         a_y = buttonHeight*np.sign(A_y)/2
         if A_y == 0: 
@@ -189,30 +143,47 @@ def showArrows(col,row):
             a_x = buttonWidth/2
             a_y = A_y*a_x/A_x
         
-
         circ_x = grid_x*col + buttonWidth/2 + a_x
-        circ_y = grid_y*row + buttonHeight/2 + a_y
-        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r))
+        circ_y = grid_y*(maxColHeight-colHeightButton+row) + buttonHeight/2 + a_y
+        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r, outline="white"))
 
-
-        if col == connection.col and row < connection.row: # forward connection below
-            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x+buttonWidth/2, connection.row*grid_y, arrow=LAST))
-        elif col == connection.col and row > connection.row: # forward connection above
-            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight, arrow=LAST))
-        elif row == connection.row and col < connection.col: # forward connection to the right
-            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x, connection.row*grid_y+buttonHeight/2, arrow=LAST))
-        elif (col < connection.col): # forward connection below to the right
-            arrows[col][row].append(canvas.create_line(col*grid_x+buttonWidth/2, row*grid_y+buttonHeight/2, connection.col*grid_x, connection.row*grid_y+buttonHeight/2, arrow=LAST))
 
     parents = clib.getParents(col, row)
     for i in range(parents.size):
-        connection = parents.data[i]
+        parent = parents.data[i]
         
-        A_x = (col - connection.col)*(grid_x)-.5*buttonWidth
-        if connection.col == col:
-            A_x = 0
 
-        A_y = (row - connection.row)*(grid_y)
+        # maxColHeight-colHeight+row
+        colHeightParent = len(buttons[parent.col])
+        colHeightButton = len(buttons[col])
+
+        if col == parent.col and row < parent.row: # backward parent below
+            arrowStart_x = parent.col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightParent+parent.row)*grid_y+buttonHeight/2
+            arrowEnd_x   = col*grid_x+buttonWidth/2
+            arrowEnd_y   = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight
+            
+        elif col == parent.col and row > parent.row: # backward parent above
+            arrowStart_x = parent.col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightParent+parent.row)*grid_y+buttonHeight/2
+            arrowEnd_x   = col*grid_x+buttonWidth/2
+            arrowEnd_y   = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight
+        elif row == parent.row and col > parent.col: # backward parent to the left
+            arrowStart_x = parent.col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightParent+parent.row)*grid_y+buttonHeight/2
+            arrowEnd_x   = col*grid_x
+            arrowEnd_y   = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
+        elif (col > parent.col): # backward parent above to the left
+            arrowStart_x = parent.col*grid_x+buttonWidth/2
+            arrowStart_y = (maxColHeight-colHeightParent+parent.row)*grid_y+buttonHeight/2
+            arrowEnd_x   = col*grid_x
+            arrowEnd_y   = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
+
+        arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST, fill="white"))
+
+
+        A_x = arrowEnd_x - arrowStart_x
+        A_y = arrowEnd_y - arrowStart_y
         
         a_y = buttonHeight*np.sign(A_y)/2
         if A_y == 0: 
@@ -224,40 +195,92 @@ def showArrows(col,row):
         if a_x > buttonWidth/2:
             a_x = buttonWidth/2
             a_y = A_y*a_x/A_x
-        
-        circ_x = grid_x*connection.col + buttonWidth/2 + a_x
-        circ_y = grid_y*connection.row + buttonHeight/2 + a_y
-        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r))
+
+        circ_x = grid_x*parent.col + buttonWidth/2 + a_x
+        circ_y = grid_y*(maxColHeight-colHeightParent+parent.row) + buttonHeight/2 + a_y
+        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r, outline="white"))
 
 
-        if col == connection.col and row < connection.row: # backward connection below
-            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x+buttonWidth/2, row*grid_y+buttonHeight, arrow=LAST))
-        elif col == connection.col and row > connection.row: # backward connection above
-            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x+buttonWidth/2, row*grid_y+buttonHeight, arrow=LAST))
-        elif row == connection.row and col > connection.col: # backward connection to the left
-            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x, row*grid_y+buttonHeight/2, arrow=LAST))
-        elif (col > connection.col): # forward connection above to the left
-            arrows[col][row].append(canvas.create_line(connection.col*grid_x+buttonWidth/2, connection.row*grid_y+buttonHeight/2, col*grid_x, row*grid_y+buttonHeight/2, arrow=LAST))
+def showAllArrows():
+    for col in range(len(buttons)):
+        for row in range(len(buttons[col])):
+            showArrows(col,row,True)
 
-         
+
+# Functions related to styling 
+def buttonClickedLambda(row, col):
+    return lambda: buttonClicked(row, col)
+
+def buttonClicked(n, m):
+
+    global selected_button
+    global temp_style
+    global buttonWidth
+    global buttonHeight
+    global grid_x 
+    global grid_y
+    global show
+
+    print("Button (", n, ", ", m, ") clicked")
+    showArrows(n,m, show)
+    colorArrows(n,m)
+
+    # Overall, what these conditionals do is as follows:
+        # If there was a yellow button when you clicked, 
+        # return it to its original style
+        # If the button you clicked was already yellow,
+        # it has been set to its original color, so there 
+        # is no longer a yellow button.
+        # Otherwise save the clicked button's style and 
+        # make it yellow
+
+    if selected_button != None:
+        buttons[selected_button[0]][selected_button[1]].configure(style=temp_style)
+
+    if selected_button == [n,m]:
+        selected_button = None 
+        return 
+    else: 
+        temp_style = buttons[n][m]["style"]
     
+    buttons[n][m].configure(style="YellowBorder"+temp_style)
+    selected_button = [n, m]
+
+
+def colorArrows(n,m):
+
+    if (selected_button != None):
+        for arrow in arrows[selected_button[0]][selected_button[1]]:
+            canvas.itemconfig(arrow, fill="white")
+        for oval in ovals[selected_button[0]][selected_button[1]]:
+            canvas.itemconfig(oval, outline="white") 
+        
+    for arrow in arrows[n][m]:
+        canvas.itemconfig(arrow, fill="blue")
+    for oval in ovals[n][m]:
+        canvas.itemconfig(oval, outline="blue") 
+    
+    
+
+def giveColorLambda(color):
+    return lambda: giveColor(color)
 
 def giveColor(color):
 
-    global yellow_button
+    global selected_button
     global temp_style
 
     # If you assign the same color to a button twice, it becomes blue again
     if (temp_style == color):
-        buttons[yellow_button[0]][yellow_button[1]].configure(style="Light Blue.TButton")
-        yellow_button = None
+        buttons[selected_button[0]][selected_button[1]].configure(style="Light Blue.TButton")
+        # selected_button = None
         return
     
     temp_style = color
-    buttons[yellow_button[0]][yellow_button[1]].configure(style=color)
+    buttons[selected_button[0]][selected_button[1]].configure(style=color)
 
     if (color == "Purple.TButton"):
-        children = clib.getChildren(yellow_button[0], yellow_button[1])
+        children = clib.getChildren(selected_button[0], selected_button[1])
         for i in range(children.size):  
            connection = children.data[i]
            if (buttons[connection.col][connection.row]["style"] == "Purple.TButton"):
@@ -266,24 +289,24 @@ def giveColor(color):
                buttons[connection.col][connection.row].configure(style="Green.TButton")
 
     if (color != "Light Blue.TButton" and color != temp_style):
-        buttons[yellow_button[0]][yellow_button[1]].configure(style="Red.TButton")
+        buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
 
-    yellow_button = None
+    #selected_button = None
 
-   
 
 def toggleGuess():
     global temp_style
 
-    if yellow_button == None or temp_style == "Light Blue.TButton": 
+    if selected_button == None or temp_style == "Light Blue.TButton": 
         return
 
     if "Guess" in temp_style:
-        buttons[yellow_button[0]][yellow_button[1]].configure(style=temp_style.lstrip("Guess")) 
+        buttons[selected_button[0]][selected_button[1]].configure(style=temp_style.lstrip("Guess")) 
     else: 
-        buttons[yellow_button[0]][yellow_button[1]].configure(style="Guess"+temp_style)
+        buttons[selected_button[0]][selected_button[1]].configure(style="Guess"+temp_style)
         temp_style = "Guess"+temp_style
 
+# Functions related to scrolling
 def on_scrolly(*args):
     canvas.yview(*args)
 
@@ -293,33 +316,33 @@ def on_scrollx(*args):
 def on_configure(event):
     canvas.configure(scrollregion=canvas.bbox("all"))
 
+# End functions
 
-
-
-col_tot = len(bins)
-row_tot = 1000
+# Geometry variables
 r = 5 # circle radius for base of arrows
 buttonHeight = 30
 buttonWidth = 100
-grid_x = 120
-grid_y = 50
+grid_x = 120 # grid spacing in x direction of buttons
+grid_y = 50  # grid spacing in y direction of buttons
 
-buttons = [[None]*row_tot for i in range(col_tot)]
+# Lists of widgets
+buttons = []
 button_frames = []
-connections = [[[]]*row_tot for i in range(col_tot)]
-arrows = [[[]]*row_tot for i in range(col_tot)]
-ovals =  [[[]]*row_tot for i in range(col_tot)]
+arrows = []
+ovals =  []
 
-
-
-yellow_button = None
+# Selected button variables
 selected_button = None
 temp_style = None
+
+# If this is false, then clicking on one button deletes 
+# arrows of all other buttons
+show = True
 
 
 # Create primary window
 root = Tk()
-root.geometry("1000x500")
+root.geometry("1200x500")
 root.configure(background="light grey")
 
 
@@ -361,48 +384,52 @@ for color in colors:
     style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
     style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","red"),("!disabled","red")])
 
-    style.configure("YellowBorder"+color+".TButton", bordercolor='magenta', borderwidth=3, font=('Helvetica', 10))
+    style.configure("YellowBorder"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 10))
     style.map("YellowBorder"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
 
-# Create and place buttons
-for col in range(len(bins)):
-    buttons.append([])
-    for row in range (len(bins[col])):
-        buttons[col].append([])
 
-        # to change button text to indices replace argument of text with 
-        # 
-        buttons[col][row] = Button(canvas, style="Light Blue.TButton", text = bins[col][row], 
-                                  command = selectedLambda(col, row), takefocus=True)
+# Make and place buttons, and make arrays for circles and arrows
+col = -1
+while clib.moreStates():
+     state = clib.getState()
+     
+
+     tempBins = ""
+     for i in range(state.size - 1, -1, -1):
+         tempBins += str(ord(state.bins[i])) + ","
+     tempBins = tempBins[:-1]
+
+     # Add new element for current bin
+     # If we are on a new col, add new list 
+     # for that col
+     if col != state.location.col:
+         buttons.append([])
+         arrows.append([])
+         ovals.append([])
+     col = state.location.col 
+     row = state.location.row
+
+     buttons[col].append(Button(canvas, style="Light Blue.TButton", text = tempBins, 
+                                command = buttonClickedLambda(col, row), takefocus=True))
+     arrows[col].append([])
+     ovals[col].append([])
+
+
+maxColHeight = max([clib.columnHeight(col) for col in range(len(buttons))])
+
+for col in range(len(buttons)):
+     for row in range(len(buttons[col])):
+        colHeight = len(buttons[col])
+     # This is needed to make buttons scrollable
         buttons[col][row].grid(row=0, column=0)
+        canvas.create_window((grid_x*col, grid_y*(maxColHeight-colHeight+row)), window=buttons[col][row], height=buttonHeight, width=buttonWidth, anchor="nw")
 
-        # This is needed to make buttons scrollable
-        canvas.create_window((grid_x*col, grid_y*row), window=buttons[col][row], height=buttonHeight, width=buttonWidth, anchor="nw")   
+# Show all arrows on initialization  
+showAllArrows()
 
-        # uncomment to see all connections on initialization
-        # showArrows(col,row)
-
-
-
-# Create secondary window
-root2 = Toplevel(root)
-root2.geometry("270x35")
-root2.attributes('-topmost',True) # This keeps the secondary window permanently on top
-
-# Secondary window buttons
-colorGreen = Button(root2, style="Green.TButton", text = "Color Green", 
-                    command = giveColorLambda("Green.TButton"))
-colorPurple = Button(root2, style="Purple.TButton", text = "Color purple", 
-                    command = giveColorLambda("Purple.TButton"))
-textToggler = Button(root2, text = "Flag Guess", 
-                    command = toggleGuess)  
-
- 
-
-colorGreen.grid(row=1, column=1, padx=3)
-colorPurple.grid(row=1, column=2, padx=3)
-textToggler.grid(row=1, column=3, padx=3)
-
+# Enables keyboard input
+# See keyPressed method for result of inputs
+root.bind("<KeyPress>", keyPressed)
                
 root.mainloop()
 

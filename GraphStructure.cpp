@@ -11,7 +11,7 @@ static vector<vector<GameState*>> columns;
 
 
 extern "C" void build(int size, int stop) {
-    graph = new ZeckGraph(11, 10000);
+    graph = new ZeckGraph(size, 10000);
     graph->build();
     columns = graph->getColumns();
 }//EOF build
@@ -48,9 +48,7 @@ extern "C" bool moreStates() {
 
 
 extern "C" State getState() {
-    if(curr_row==0){
-        cout << endl << "COLUMN: " << curr_col << endl;
-    }
+
     GameState* curr = columns[curr_col][curr_row];
     curr_row += 1;
     if(curr_row == columns[curr_col].size()){

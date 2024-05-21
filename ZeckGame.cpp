@@ -124,22 +124,6 @@ bool ZeckGraph::build() {
         makeMoves(curr, 10000);
     }
 
-    // int colIdx = 0;
-    // for(const auto& col : columns){
-    //     cout << "Column " << colIdx << ":" << endl;
-    //     for(const auto curr : col){
-    //         cout << "\t";
-    //         for(int i = curr->bins.size()-1; i >= 0; --i){
-    //             cout << static_cast<int>(curr->bins[i]) << ",";
-    //         }
-    //         cout << endl;
-    //         for(auto childLoc : curr->children){
-    //             cout << "\t\t" << childLoc.col << " " << childLoc.row << endl;
-    //         }
-    //     }
-    //     colIdx++;
-    // }
-
     return 1;
 }//EOF build
 
