@@ -6,7 +6,7 @@
 #          next move move 19a
 # 2.) Clicking a node highlights forward connection and backward 
 #     connection edges and nodes
-# 3.) Generate with no connections/ toggle showing connections
+#[3.)] Generate with no connections/ toggle showing connections
 #[4.)]Click state to select, click color to color 
 #[5.)]Button for coloring all children and parents green (don't double color)
 # 6.) Undo button (visually restore, and delete from history)
@@ -53,7 +53,7 @@ clib.columnHeight.restype = ctypes.c_int
 
 # First index is the number of tokens in the first bin 
 # on the initial state
-clib.build(15,0)
+clib.build(11,0)
 
 # Keyboard controlled events
 def keyPressed(event):
@@ -126,7 +126,7 @@ def showArrows(col,row,show):
             arrowEnd_x   = child.col*grid_x
             arrowEnd_y   = (maxColHeight-colHeightChild+child.row)*grid_y+buttonHeight/2
 
-        arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST))
+        arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST, fill="white"))
 
 
         A_x = arrowEnd_x - arrowStart_x
@@ -145,7 +145,7 @@ def showArrows(col,row,show):
         
         circ_x = grid_x*col + buttonWidth/2 + a_x
         circ_y = grid_y*(maxColHeight-colHeightButton+row) + buttonHeight/2 + a_y
-        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r))
+        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r, outline="white"))
 
 
     parents = clib.getParents(col, row)
@@ -179,7 +179,7 @@ def showArrows(col,row,show):
             arrowEnd_x   = col*grid_x
             arrowEnd_y   = (maxColHeight-colHeightButton+row)*grid_y+buttonHeight/2
 
-        arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST))
+        arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST, fill="white"))
 
 
         A_x = arrowEnd_x - arrowStart_x
@@ -198,7 +198,7 @@ def showArrows(col,row,show):
 
         circ_x = grid_x*parent.col + buttonWidth/2 + a_x
         circ_y = grid_y*(maxColHeight-colHeightParent+parent.row) + buttonHeight/2 + a_y
-        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r))
+        ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r, outline="white"))
 
 
 def showAllArrows():
@@ -223,6 +223,7 @@ def buttonClicked(n, m):
 
     print("Button (", n, ", ", m, ") clicked")
     showArrows(n,m, show)
+    colorArrows(n,m)
 
     # Overall, what these conditionals do is as follows:
         # If there was a yellow button when you clicked, 
@@ -245,6 +246,22 @@ def buttonClicked(n, m):
     buttons[n][m].configure(style="YellowBorder"+temp_style)
     selected_button = [n, m]
 
+
+def colorArrows(n,m):
+
+    if (selected_button != None):
+        for arrow in arrows[selected_button[0]][selected_button[1]]:
+            canvas.itemconfig(arrow, fill="white")
+        for oval in ovals[selected_button[0]][selected_button[1]]:
+            canvas.itemconfig(oval, outline="white") 
+        
+    for arrow in arrows[n][m]:
+        canvas.itemconfig(arrow, fill="blue")
+    for oval in ovals[n][m]:
+        canvas.itemconfig(oval, outline="blue") 
+    
+    
+
 def giveColorLambda(color):
     return lambda: giveColor(color)
 
@@ -256,7 +273,7 @@ def giveColor(color):
     # If you assign the same color to a button twice, it becomes blue again
     if (temp_style == color):
         buttons[selected_button[0]][selected_button[1]].configure(style="Light Blue.TButton")
-        selected_button = None
+        # selected_button = None
         return
     
     temp_style = color
@@ -274,7 +291,7 @@ def giveColor(color):
     if (color != "Light Blue.TButton" and color != temp_style):
         buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
 
-    selected_button = None
+    #selected_button = None
 
 
 def toggleGuess():
@@ -325,7 +342,7 @@ show = True
 
 # Create primary window
 root = Tk()
-root.geometry("1000x500")
+root.geometry("1200x500")
 root.configure(background="light grey")
 
 
@@ -337,7 +354,7 @@ scrollbarx = Scrollbar(root, orient="horizontal", command=on_scrollx)
 scrollbarx.pack(side="bottom", fill="x")
 
 # Create a Canvas widget
-canvas = Canvas(root, bg="light grey")
+canvas = Canvas(root, bg="grey")
 canvas.pack(side="top", fill="both", expand=True)
 
 
@@ -367,7 +384,7 @@ for color in colors:
     style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
     style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","red"),("!disabled","red")])
 
-    style.configure("YellowBorder"+color+".TButton", bordercolor='magenta', borderwidth=3, font=('Helvetica', 10))
+    style.configure("YellowBorder"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 10))
     style.map("YellowBorder"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
 
 
