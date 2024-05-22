@@ -4,7 +4,7 @@
 #     Branch the history for guesses:
 #          If you guess on move 18, call that move 18a, then the 
 #          next move move 19a
-# 2.) Clicking a node highlights forward connection and backward 
+#[2.)]Clicking a node highlights forward connection and backward 
 #     connection edges and nodes
 #[3.)] Generate with no connections/ toggle showing connections
 #[4.)]Click state to select, click color to color 
@@ -25,10 +25,34 @@ from tkinter.ttk import *
 import numpy as np
 import ctypes
 import os
+import datetime
+
+
 
 path = os.getcwd()
 clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
 
+
+# Edit parameters boxed below to edit the graph
+
+#############################################################
+                                                            #
+# First index is the number of tokens in the first bin      #
+# on the initial state                                      #
+clib.build(25,0)                                            #
+                                                            #
+# Geometry variables                                        #
+r = 5 # circle radius for base of arrows                    #
+buttonWidth  = 100                                          #
+buttonHeight = 30                                           #
+grid_x       = 120 # grid spacing in x direction of buttons #
+grid_y       = 50  # grid spacing in y direction of buttons # 
+windowWidth  = 1200                                         #
+windowHeight = 600                                          #
+                                                            #
+#############################################################
+
+# Definitions of clib functions
 class Pair(ctypes.Structure):
     _fields_ = [("col", ctypes.c_int), ("row", ctypes.c_int)]
 
@@ -51,13 +75,9 @@ clib.getChildren.restype = PairVector
 clib.getState.restype = State
 clib.columnHeight.restype = ctypes.c_int
 
-# First index is the number of tokens in the first bin 
-# on the initial state
-clib.build(11,0)
 
 # Keyboard controlled events
 def keyPressed(event):
-    
     global show
     
     match event.char:
@@ -72,16 +92,12 @@ def keyPressed(event):
         case "a": 
             showAllArrows()
 
-# Functions related to arrow and button placement 
-
-def button_x(col, row):
-    col*grid_x
-
-def button_y(col, row):
-    row*grid_y
-
+# Functions related to arrow and oval generation
 def deleteArrows():
-    
+    global allArrowsShown 
+
+    allArrowsShown = False 
+
     for arrowColList in arrows:
         for arrowRowList in arrowColList:
             for arrow in arrowRowList:
@@ -92,16 +108,37 @@ def deleteArrows():
             for oval in ovalRowList:
                 canvas.delete(oval)
 
-def showArrows(col,row,show):
 
+def showArrows(col,row,show):
     if not show:
         deleteArrows()
-    
+
+    makeChildArrows(col, row)
+    makeParentArrows(col, row)
+
+
+def showAllArrows():
+    global allArrowsShown 
+
+    # Prevents duplicates of arrows due to repeated calls
+    if allArrowsShown: 
+        return 
+    allArrowsShown = True
+
+    timeStart = datetime.datetime.now() # debug
+    for col in range(len(buttons)):
+        for row in range(len(buttons[col])):
+            makeParentArrows(col, row)
+    # debug
+    timeElapsed = datetime.datetime.now() - timeStart 
+    print("showAllArrows took: ", timeElapsed)
+
+
+def makeChildArrows(col, row): 
     children = clib.getChildren(col, row)
     for i in range(children.size):
         child = children.data[i]
 
-        # maxColHeight-colHeight+row
         colHeightChild = len(buttons[child.col])
         colHeightButton = len(buttons[col])
 
@@ -128,7 +165,7 @@ def showArrows(col,row,show):
 
         arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST, fill="white"))
 
-
+        # Oval placement geometry
         A_x = arrowEnd_x - arrowStart_x
         A_y = arrowEnd_y - arrowStart_y
         
@@ -137,7 +174,6 @@ def showArrows(col,row,show):
             a_x = buttonWidth/2
         else:
             a_x = A_x*a_y/A_y 
-
 
         if a_x > buttonWidth/2:
             a_x = buttonWidth/2
@@ -148,12 +184,11 @@ def showArrows(col,row,show):
         ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r, outline="white"))
 
 
+def makeParentArrows(col, row):
     parents = clib.getParents(col, row)
     for i in range(parents.size):
         parent = parents.data[i]
-        
 
-        # maxColHeight-colHeight+row
         colHeightParent = len(buttons[parent.col])
         colHeightButton = len(buttons[col])
 
@@ -181,7 +216,7 @@ def showArrows(col,row,show):
 
         arrows[col][row].append(canvas.create_line(arrowStart_x, arrowStart_y , arrowEnd_x, arrowEnd_y, arrow=LAST, fill="white"))
 
-
+        # Oval placement geometry
         A_x = arrowEnd_x - arrowStart_x
         A_y = arrowEnd_y - arrowStart_y
         
@@ -191,7 +226,6 @@ def showArrows(col,row,show):
         else:
             a_x = A_x*a_y/A_y 
 
-
         if a_x > buttonWidth/2:
             a_x = buttonWidth/2
             a_y = A_y*a_x/A_x
@@ -200,19 +234,11 @@ def showArrows(col,row,show):
         circ_y = grid_y*(maxColHeight-colHeightParent+parent.row) + buttonHeight/2 + a_y
         ovals[col][row].append(canvas.create_oval(circ_x-r, circ_y-r, circ_x+r, circ_y+r, outline="white"))
 
-
-def showAllArrows():
-    for col in range(len(buttons)):
-        for row in range(len(buttons[col])):
-            showArrows(col,row,True)
-
-
 # Functions related to styling 
-def buttonClickedLambda(row, col):
-    return lambda: buttonClicked(row, col)
+def buttonClickedLambda(col, row):
+    return lambda: buttonClicked(col, row)
 
-def buttonClicked(n, m):
-
+def buttonClicked(col, row):
     global selected_button
     global temp_style
     global buttonWidth
@@ -221,59 +247,58 @@ def buttonClicked(n, m):
     global grid_y
     global show
 
-    print("Button (", n, ", ", m, ") clicked")
-    showArrows(n,m, show)
-    colorArrows(n,m)
+    print("Button (", col, ", ", row, ") clicked")
+    
 
     # Overall, what these conditionals do is as follows:
-        # If there was a yellow button when you clicked, 
-        # return it to its original style
-        # If the button you clicked was already yellow,
-        # it has been set to its original color, so there 
-        # is no longer a yellow button.
-        # Otherwise save the clicked button's style and 
-        # make it yellow
+        # If there was a selected button when you clicked, 
+        # return it to its original style, called temp_style.
+        # If the button you clicked was already selected,
+        # do nothing. Consider this case to be user error.
+        # Otherwise save the clicked button's style as temp_style 
+        # and make it selected
 
+    if selected_button == [col,row]:
+        return
+    
     if selected_button != None:
         buttons[selected_button[0]][selected_button[1]].configure(style=temp_style)
-
-    if selected_button == [n,m]:
-        selected_button = None 
-        return 
-    else: 
-        temp_style = buttons[n][m]["style"]
     
-    buttons[n][m].configure(style="YellowBorder"+temp_style)
-    selected_button = [n, m]
+    temp_style = buttons[col][row]["style"]
+    
+    showArrows(col,row, show)
+    colorArrows(col,row)
+
+    buttons[col][row].configure(style="BlueText"+temp_style)
+    selected_button = [col, row]
 
 
-def colorArrows(n,m):
+def colorArrows(col,row):
 
     if (selected_button != None):
         for arrow in arrows[selected_button[0]][selected_button[1]]:
             canvas.itemconfig(arrow, fill="white")
         for oval in ovals[selected_button[0]][selected_button[1]]:
             canvas.itemconfig(oval, outline="white") 
-        
-    for arrow in arrows[n][m]:
-        canvas.itemconfig(arrow, fill="blue")
-    for oval in ovals[n][m]:
-        canvas.itemconfig(oval, outline="blue") 
-    
-    
+
+    selected_color = "blue"
+    for arrow in arrows[col][row]:
+        canvas.itemconfig(arrow, fill=selected_color)
+    for oval in ovals[col][row]:
+        canvas.itemconfig(oval, outline=selected_color) 
+
 
 def giveColorLambda(color):
     return lambda: giveColor(color)
 
 def giveColor(color):
-
     global selected_button
     global temp_style
 
     # If you assign the same color to a button twice, it becomes blue again
     if (temp_style == color):
-        buttons[selected_button[0]][selected_button[1]].configure(style="Light Blue.TButton")
-        # selected_button = None
+        temp_style = "Light Blue.TButton"
+        buttons[selected_button[0]][selected_button[1]].configure(style=temp_style)
         return
     
     temp_style = color
@@ -290,8 +315,6 @@ def giveColor(color):
 
     if (color != "Light Blue.TButton" and color != temp_style):
         buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
-
-    #selected_button = None
 
 
 def toggleGuess():
@@ -318,12 +341,6 @@ def on_configure(event):
 
 # End functions
 
-# Geometry variables
-r = 5 # circle radius for base of arrows
-buttonHeight = 30
-buttonWidth = 100
-grid_x = 120 # grid spacing in x direction of buttons
-grid_y = 50  # grid spacing in y direction of buttons
 
 # Lists of widgets
 buttons = []
@@ -336,15 +353,16 @@ selected_button = None
 temp_style = None
 
 # If this is false, then clicking on one button deletes 
-# arrows of all other buttons
+# arrows of all other buttons.
+# Otherwise arrows generated will stay on screen until 
+# this variable is made false and a button is clicked.
 show = True
 
 
 # Create primary window
 root = Tk()
-root.geometry("1200x500")
+root.geometry(str(windowWidth)+"x"+str(windowHeight))
 root.configure(background="light grey")
-
 
 # Create Scrollbar widgets
 scrollbary = Scrollbar(root, orient="vertical", command=on_scrolly)
@@ -357,7 +375,6 @@ scrollbarx.pack(side="bottom", fill="x")
 canvas = Canvas(root, bg="light grey")
 canvas.pack(side="top", fill="both", expand=True)
 
-
 # Configure the Canvas and Scrollbars
 canvas.config(yscrollcommand=scrollbary.set)
 scrollbary.config(command=on_scrolly)
@@ -367,7 +384,7 @@ scrollbarx.config(command=on_scrollx)
 
 canvas.bind("<Configure>", on_configure)
 
-
+# Define overall theme
 style = Style()
 style.theme_use("clam")
 
@@ -384,11 +401,13 @@ for color in colors:
     style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
     style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","red"),("!disabled","red")])
 
-    style.configure("YellowBorder"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 10))
-    style.map("YellowBorder"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
+    style.configure("BlueText"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 10))
+    style.map("BlueText"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","blue"),("!disabled","blue")])
 
 
-# Make and place buttons, and make arrays for circles and arrows
+# Make buttons, and arrays for circles and arrows
+timeStart = datetime.datetime.now() # debug 
+
 col = -1
 while clib.moreStates():
      state = clib.getState()
@@ -413,24 +432,43 @@ while clib.moreStates():
                                 command = buttonClickedLambda(col, row), takefocus=True))
      arrows[col].append([])
      ovals[col].append([])
+# debug
+timeElapsed = datetime.datetime.now() - timeStart 
+print("Making arrays took: ", timeElapsed)
 
+# Place buttons
+timeStart = datetime.datetime.now() # debug
 
 maxColHeight = max([clib.columnHeight(col) for col in range(len(buttons))])
-
 for col in range(len(buttons)):
      for row in range(len(buttons[col])):
         colHeight = len(buttons[col])
      # This is needed to make buttons scrollable
         buttons[col][row].grid(row=0, column=0)
         canvas.create_window((grid_x*col, grid_y*(maxColHeight-colHeight+row)), window=buttons[col][row], height=buttonHeight, width=buttonWidth, anchor="nw")
+# debug
+timeElapsed = datetime.datetime.now() - timeStart 
+print("Placing buttons took: ", timeElapsed)
 
 # Show all arrows on initialization  
+allArrowsShown = False 
 showAllArrows()
+allArrowsShown = True
 
 # Enables keyboard input
 # See keyPressed method for result of inputs
 root.bind("<KeyPress>", keyPressed)
-               
+
+# Starts canvas scrolled all the way down
+canvas.update_idletasks()
+canvas.yview_moveto(1)
+
 root.mainloop()
 
+
+timeStart = datetime.datetime.now() # debug
+
 clib.deallocate()
+# debug
+timeElapsed = datetime.datetime.now() - timeStart 
+print("clib.deallocate() took: ", timeElapsed)
