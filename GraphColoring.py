@@ -48,8 +48,8 @@ buttonWidth  = 100                                          #
 buttonHeight = 30                                           #
 grid_x       = 120 # grid spacing in x direction of buttons #
 grid_y       = 50  # grid spacing in y direction of buttons # 
-windowWidth  = 1200                                         #
-windowHeight = 600                                          #
+windowWidth  = 1000                                         #
+windowHeight = 400                                          #
                                                             #
 #############################################################
 
@@ -266,6 +266,7 @@ def undo():
             buttons[col][row].configure(style=oldColors[col][row])
 
     buttons[selected_button[0]][selected_button[1]].configure(style="BlueText"+temp_style)
+    print("Undo")
 
 def buttonClickedLambda(col, row):
     return lambda: buttonClicked(col, row)
@@ -279,7 +280,7 @@ def buttonClicked(col, row):
     global grid_y
     global show
 
-    print("Button (", buttons[col][row]["text"], ") clicked")
+    # print("Button (", buttons[col][row]["text"], ") clicked")
     
 
     # Overall, what these conditionals do is as follows:
@@ -335,10 +336,12 @@ def giveColor(color):
     if (temp_style == color):
         temp_style = "Light Blue.TButton"
         buttons[selected_button[0]][selected_button[1]].configure(style=temp_style)
+        print("Button", buttons[selected_button[0]][selected_button[1]]["text"], "uncolored")
         return
     
     temp_style = color
     buttons[selected_button[0]][selected_button[1]].configure(style=color)
+    print("Button", buttons[selected_button[0]][selected_button[1]]["text"], "colored", color.replace(".TButton","").lower())
 
     if (color == "Purple.TButton"):
         children = clib.getChildren(selected_button[0], selected_button[1])
@@ -346,11 +349,16 @@ def giveColor(color):
            connection = children.data[i]
            if (buttons[connection.col][connection.row]["style"] == "Purple.TButton" or buttons[connection.col][connection.row]["style"] == "GuessPurple.TButton"):
                buttons[connection.col][connection.row].configure(style="Red.TButton")
+               print("Contradiction!")
+               print("      Button", buttons[connection.col][connection.row]["text"], "colored RED")
            else:
                buttons[connection.col][connection.row].configure(style="Green.TButton")
+               print("      Button", buttons[connection.col][connection.row]["text"], "colored green")
 
     if (color != "Light Blue.TButton" and color != temp_style):
         buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
+        print("Contradiction!")
+        print("Button", buttons[selected_button[0]][selected_button[1]]["text"], "colored RED")
 
 
 def toggleGuess():
@@ -432,7 +440,7 @@ style = Style()
 style.theme_use("clam")
 
 # Add styles
-style.configure('TButton', bordercolor='black', borderwidth=3)
+style.configure('TButton', bordercolor='black', borderwidth=3, font=('Helvetica', 10))
 
 colors = ["Light Blue", "Green", "Purple", "Red"]
 style.map('TButton',background=[('active',"dark grey")],foreground=[('active','black'),('!disabled',"black")])
