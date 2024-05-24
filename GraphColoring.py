@@ -1,16 +1,20 @@
 # TODO: 
-# 1.) display move history (ex: move (2,3) colored green)
+# [1.)]display move history (ex: move (2,3) colored green)
 #     alternatively export history to text file 
 #     Branch the history for guesses:
 #          If you guess on move 18, call that move 18a, then the 
 #          next move move 19a
-#[2.)]Clicking a node highlights forward connection and backward 
+# [2.)]Clicking a node highlights forward connection and backward 
 #     connection edges and nodes
-#[3.)] Generate with no connections/ toggle showing connections
-#[4.)]Click state to select, click color to color 
-#[5.)]Button for coloring all children and parents green (don't double color)
-#[6.)]Undo button (visually restore, and delete from history)
-#[7.)]Option for visually distinguishing guesses
+# [3.)] Generate with no connections/ toggle showing connections
+# [4.)]Click state to select, click color to color 
+# [5.)]Button for coloring all children and parents green (don't double color)
+# [6.)]Undo button (visually restore, and delete from history)
+# [7.)]Option for visually distinguishing guesses
+#  8.) Display effective connections, and whether a button has a purple child
+#  9.) Add right click to show connections without selection button
+# 10.) Save log to file with keypress
+#           Store log as list of strings, which gets popped on undos
 #
 # Keyboard Controls:
 # e colors green, q color purple, w toggles guess,
@@ -19,6 +23,14 @@
 # arrows will not get erased when clicking,
 # a shows all arrows for all connections
 # z undoes previous coloring
+#
+# Notes:
+# Nothing will render above a button on a canvas, so placing text 
+# widgets on top of buttons with their effective connections is not 
+# possible.
+# As such, the next best solution I could think of is to have a function 
+# to toggle between making button text effective connections where possible 
+# (which is when a button is green and has no purple children), and bins
 
 
 from tkinter import *
@@ -40,14 +52,14 @@ clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
                                                             #
 # First index is the number of tokens in the first bin      #
 # on the initial state                                      #
-clib.build(25,0)                                            #
+clib.build(10,0)                                            #
                                                             #
 # Geometry variables                                        #
 r = 5 # circle radius for base of arrows                    #
 buttonWidth  = 100                                          #
 buttonHeight = 30                                           #
 grid_x       = 120 # grid spacing in x direction of buttons #
-grid_y       = 50  # grid spacing in y direction of buttons # 
+grid_y       = 50  # grid spacing in y direction of buttons #
 windowWidth  = 1000                                         #
 windowHeight = 400                                          #
                                                             #
@@ -259,11 +271,10 @@ def undo():
     oldColors = colorHistory.pop()
 
     if selected_button != None:
-        temp_style = oldColors[selected_button[0]][selected_button[1]]
+        temp_style = oldColors[0][2]
 
-    for col in range(len(buttons)):
-        for row in range(len(buttons[col])):
-            buttons[col][row].configure(style=oldColors[col][row])
+    for state in oldColors:
+        buttons[state[0]][state[1]].configure(style=state[2])
 
     buttons[selected_button[0]][selected_button[1]].configure(style="BlueText"+temp_style)
     print("Undo")
@@ -310,9 +321,9 @@ def colorArrows(col,row):
 
     if (selected_button != None):
         for arrow in arrows[selected_button[0]][selected_button[1]]:
-            canvas.itemconfig(arrow, fill="white")
+            canvas.itemconfig(arrow, fill="brown")
         for oval in ovals[selected_button[0]][selected_button[1]]:
-            canvas.itemconfig(oval, outline="white") 
+            canvas.itemconfig(oval, outline="brown") 
 
     selected_color = "blue"
     for arrow in arrows[col][row]:
@@ -329,36 +340,40 @@ def giveColor(color):
     global temp_style
     global colorHistory
 
-    # Save button coloring before recoloring
-    colorHistory.append(getAllColors())
-
-    # If you assign the same color to a button twice, it becomes blue again
+    # If you assign the same color to a button twice do nothing
     if (temp_style == color):
-        temp_style = "Light Blue.TButton"
-        buttons[selected_button[0]][selected_button[1]].configure(style=temp_style)
-        print("Button", buttons[selected_button[0]][selected_button[1]]["text"], "uncolored")
         return
     
-    temp_style = color
-    buttons[selected_button[0]][selected_button[1]].configure(style=color)
-    print("Button", buttons[selected_button[0]][selected_button[1]]["text"], "colored", color.replace(".TButton","").lower())
+    # Save button coloring before recoloring
+    colorHistory.append([[selected_button[0], selected_button[1], temp_style]])
 
+    # Stop user from coloring already colored button another color
+    if (temp_style != "Light Blue.TButton" and color != temp_style):
+        buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
+        print("Contradiction: Button", buttons[selected_button[0]][selected_button[1]]["text"], "was", temp_style.replace(".TButton","").lower(), "so it cannot be", color.replace(".TButton","").lower())
+        return
+    
+    # Color selected button
+    buttons[selected_button[0]][selected_button[1]].configure(style=color)
+    temp_style = color
+    
+    print("(", len(colorHistory),") Button", buttons[selected_button[0]][selected_button[1]]["text"], "colored", color.replace(".TButton","").lower())
+
+    stepCounter = 0
     if (color == "Purple.TButton"):
         children = clib.getChildren(selected_button[0], selected_button[1])
         for i in range(children.size):  
            connection = children.data[i]
+           # Save child coloring before recoloring
+           colorHistory[-1].append([connection.col, connection.row, buttons[connection.col][connection.row]["style"]])
+
+           stepCounter = stepCounter+1
            if (buttons[connection.col][connection.row]["style"] == "Purple.TButton" or buttons[connection.col][connection.row]["style"] == "GuessPurple.TButton"):
                buttons[connection.col][connection.row].configure(style="Red.TButton")
-               print("Contradiction!")
-               print("      Button", buttons[connection.col][connection.row]["text"], "colored RED")
+               print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", buttons[connection.col][connection.row]["text"], "was purple")
            else:
                buttons[connection.col][connection.row].configure(style="Green.TButton")
-               print("      Button", buttons[connection.col][connection.row]["text"], "colored green")
-
-    if (color != "Light Blue.TButton" and color != temp_style):
-        buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
-        print("Contradiction!")
-        print("Button", buttons[selected_button[0]][selected_button[1]]["text"], "colored RED")
+               print("      (", len(colorHistory),".",stepCounter,") Button", buttons[connection.col][connection.row]["text"], "colored green")
 
 
 def toggleGuess():
@@ -366,7 +381,7 @@ def toggleGuess():
     global colorHistory
 
     # Save button coloring before recoloring
-    colorHistory.append(getAllColors())
+    colorHistory.append([[selected_button[0], selected_button[1], buttons[selected_button[0]][selected_button[1]]["style"]]])
 
     if selected_button == None or temp_style == "Light Blue.TButton": 
         return
@@ -395,20 +410,20 @@ buttons = []
 button_frames = []
 arrows = []
 ovals =  []
+ef_cons = [] # Effective connections
 
 # For undo
 colorHistory = []
 
 # Selected button variables
-selected_button = None
-temp_style = None
+selected_button = None # 1D list of length 2. 0th index is col, 1st index is row
+temp_style = None # Style of selected button it should be when another button is selected
 
 # If this is false, then clicking on one button deletes 
 # arrows of all other buttons.
 # Otherwise arrows generated will stay on screen until 
 # this variable is made false and a button is clicked.
 show = True
-
 
 # Create primary window
 root = Tk()
@@ -463,7 +478,7 @@ col = -1
 while clib.moreStates():
      state = clib.getState()
      
-
+     # Make string with bins
      tempBins = ""
      for i in range(state.size - 1, -1, -1):
          tempBins += str(ord(state.bins[i])) + ","
@@ -476,6 +491,7 @@ while clib.moreStates():
          buttons.append([])
          arrows.append([])
          ovals.append([])
+         ef_cons.append([])
      col = state.location.col 
      row = state.location.row
 
@@ -483,6 +499,7 @@ while clib.moreStates():
                                 command = buttonClickedLambda(col, row), takefocus=True))
      arrows[col].append([])
      ovals[col].append([])
+     ef_cons[col].append(None)
 # debug
 timeElapsed = datetime.datetime.now() - timeStart 
 print("Making arrays took: ", timeElapsed)
