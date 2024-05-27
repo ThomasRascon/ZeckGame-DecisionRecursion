@@ -6,22 +6,22 @@
 #          next move move 19a
 # [2.)]Clicking a node highlights forward connection and backward 
 #     connection edges and nodes
-# [3.)] Generate with no connections/ toggle showing connections
+# [3.)] Generate with no connections/ toggle showArrowsing connections
 # [4.)]Click state to select, click color to color 
 # [5.)]Button for coloring all children and parents green (don't double color)
 # [6.)]Undo button (visually restore, and delete from history)
 # [7.)]Option for visually distinguishing guesses
 #  8.) Display effective connections, and whether a button has a purple child
-#  9.) Add right click to show connections without selection button
+#  9.) Add right click to showArrows connections without selection button
 # 10.) Save log to file with keypress
 #           Store log as list of strings, which gets popped on undos
 #
 # Keyboard Controls:
 # e colors green, q color purple, w toggles guess,
-# s toggles variable "show", which determines if clicking a button 
+# s toggles variable "showArrows", which determines if clicking a button 
 # erases all arrows on screen, which is on by default, meaning that 
 # arrows will not get erased when clicking,
-# a shows all arrows for all connections
+# a showArrowss all arrows for all connections
 # z undoes previous coloring
 #
 # Notes:
@@ -31,6 +31,27 @@
 # As such, the next best solution I could think of is to have a function 
 # to toggle between making button text effective connections where possible 
 # (which is when a button is green and has no purple children), and bins
+#
+#
+# Effective Connections Notes:
+# Undo():
+#   If you are undoing a green coloring, iterate through parents,
+#   if the parent has 0 effective connections (and it is not a contradiction), then do nothing
+#   Otherwise increment effective connections of the parent
+#   If you are undoing a purple, then undo green colorings for the children, and 
+#   for any parents, if the parent is green, recalculate its effective connections
+#   In either case, make the newly uncolored effective connections None
+# 
+# Throw contradiction if green has 0 effective connections without purple child.
+# 
+#
+#
+# Handling ∞:
+# Every node has a boolean, infiniteEffConnections, that is true by default
+# When it is true the effective connections will display ∞, although they 
+# will be calculated as normal.
+# When a node is colored purple, its combine on zero children's infiniteEffConnections 
+# flags are made false
 
 
 from tkinter import *
@@ -39,7 +60,6 @@ import numpy as np
 import ctypes
 import os
 import datetime
-
 
 
 path = os.getcwd()
@@ -60,7 +80,7 @@ buttonWidth  = 100                                          #
 buttonHeight = 30                                           #
 grid_x       = 120 # grid spacing in x direction of buttons #
 grid_y       = 50  # grid spacing in y direction of buttons #
-windowWidth  = 1000                                         #
+windowWidth  = 1200                                         #
 windowHeight = 400                                          #
                                                             #
 #############################################################
@@ -91,7 +111,7 @@ clib.columnHeight.restype = ctypes.c_int
 
 # Keyboard controlled events
 def keyPressed(event):
-    global show
+    global showArrows
     
     match event.char:
         case "e":
@@ -100,18 +120,20 @@ def keyPressed(event):
             giveColor("Purple.TButton")
         case "w":
             toggleGuess()
-        case "s": # toggle show
-            show = not show
+        case "s": # toggle showArrows
+            showArrows = not showArrows
         case "a": 
-            showAllArrows()
+            showArrowsAllArrows()
         case "z":
             undo()
+        case "c":
+            toggleEffectiveConnections()
 
 # Functions related to arrow and oval generation
 def deleteArrows():
-    global allArrowsShown 
+    global allArrowsshowArrowsn 
 
-    allArrowsShown = False 
+    allArrowsshowArrowsn = False 
 
     for arrowColList in arrows:
         for arrowRowList in arrowColList:
@@ -124,21 +146,21 @@ def deleteArrows():
                 canvas.delete(oval)
 
 
-def showArrows(col,row,show):
-    if not show:
+def showArrowsArrows(col,row,showArrows):
+    if not showArrows:
         deleteArrows()
 
     makeChildArrows(col, row)
     makeParentArrows(col, row)
 
 
-def showAllArrows():
-    global allArrowsShown 
+def showArrowsAllArrows():
+    global allArrowsshowArrowsn 
 
     # Prevents duplicates of arrows due to repeated calls
-    if allArrowsShown: 
+    if allArrowsshowArrowsn: 
         return 
-    allArrowsShown = True
+    allArrowsshowArrowsn = True
 
     timeStart = datetime.datetime.now() # debug
     for col in range(len(buttons)):
@@ -146,7 +168,7 @@ def showAllArrows():
             makeParentArrows(col, row)
     # debug
     timeElapsed = datetime.datetime.now() - timeStart 
-    print("showAllArrows took: ", timeElapsed)
+    print("showArrowsAllArrows took: ", timeElapsed)
 
 
 def makeChildArrows(col, row): 
@@ -289,7 +311,7 @@ def buttonClicked(col, row):
     global buttonHeight
     global grid_x 
     global grid_y
-    global show
+    global showArrows
 
     # print("Button (", buttons[col][row]["text"], ") clicked")
     
@@ -310,7 +332,7 @@ def buttonClicked(col, row):
     
     temp_style = buttons[col][row]["style"]
     
-    showArrows(col,row, show)
+    showArrowsArrows(col,row, showArrows)
     colorArrows(col,row)
 
     buttons[col][row].configure(style="BlueText"+temp_style)
@@ -321,9 +343,9 @@ def colorArrows(col,row):
 
     if (selected_button != None):
         for arrow in arrows[selected_button[0]][selected_button[1]]:
-            canvas.itemconfig(arrow, fill="brown")
+            canvas.itemconfig(arrow, fill="white")
         for oval in ovals[selected_button[0]][selected_button[1]]:
-            canvas.itemconfig(oval, outline="brown") 
+            canvas.itemconfig(oval, outline="white") 
 
     selected_color = "blue"
     for arrow in arrows[col][row]:
@@ -359,23 +381,28 @@ def giveColor(color):
     
     print("(", len(colorHistory),") Button", buttons[selected_button[0]][selected_button[1]]["text"], "colored", color.replace(".TButton","").lower())
 
+    if (color == "Green.TButton"):
+        updateEffectiveGreen(selected_button[0], selected_button[1])
+
     stepCounter = 0
     if (color == "Purple.TButton"):
+        updateEffectivePurple(selected_button[0], selected_button[1])
         children = clib.getChildren(selected_button[0], selected_button[1])
         for i in range(children.size):  
-           connection = children.data[i]
+           child = children.data[i]
            # Save child coloring before recoloring
-           colorHistory[-1].append([connection.col, connection.row, buttons[connection.col][connection.row]["style"]])
+           colorHistory[-1].append([child.col, child.row, buttons[child.col][child.row]["style"]])
 
            stepCounter = stepCounter+1
-           if (buttons[connection.col][connection.row]["style"] == "Purple.TButton" or buttons[connection.col][connection.row]["style"] == "GuessPurple.TButton"):
-               buttons[connection.col][connection.row].configure(style="Red.TButton")
-               print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", buttons[connection.col][connection.row]["text"], "was purple")
+           if (buttons[child.col][child.row]["style"] == "Purple.TButton" or buttons[child.col][child.row]["style"] == "GuessPurple.TButton"):
+               buttons[child.col][child.row].configure(style="Red.TButton")
+               print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", buttons[child.col][child.row]["text"], "was purple")
            else:
-               buttons[connection.col][connection.row].configure(style="Green.TButton")
-               print("      (", len(colorHistory),".",stepCounter,") Button", buttons[connection.col][connection.row]["text"], "colored green")
+               updateEffectiveGreen(child.col, child.row)
+               buttons[child.col][child.row].configure(style="Green.TButton")
+               print("      (", len(colorHistory),".",stepCounter,") Button", buttons[child.col][child.row]["text"], "colored green")
 
-
+    
 def toggleGuess():
     global temp_style
     global colorHistory
@@ -391,6 +418,83 @@ def toggleGuess():
     else: 
         buttons[selected_button[0]][selected_button[1]].configure(style="Guess"+temp_style)
         temp_style = "Guess"+temp_style
+
+# Functions related to effective connections 
+def toggleEffectiveConnections(): 
+    global showEffectiveConnections
+    global eff_cons
+
+    if eff_cons:
+        for col in eff_cons:
+            for row in eff_cons:
+                if len(eff_cons[col][row]) == 0:
+                    continue
+                buttons[col][row].configure(text=str(eff_cons[col][row]))
+    eff_cons = not eff_cons
+
+
+def updateEffectivePurple(col, row):
+    
+    # Compute effective connections of children of new purple
+    children = clib.getChildren(col, row)
+
+    for child_iter in range(children.size):
+        child = children.data[child_iter]
+
+        if eff_cons[child.col][child.row] == 0:
+            continue
+
+        subChildren = clib.getChildren(child.col, child.row)
+        tempEff_cons = subChildren.size
+        
+        for subChild_iter in range(subChildren.size):
+            subChild = subChildren.data[subChild_iter]
+            if "Green" in buttons[subChild.col][subChild.row]["style"]:
+                tempEff_cons = tempEff_cons - 1
+        eff_cons[child.col][child.row] = tempEff_cons
+        buttons[child.col][child.row].configure(text=str(tempEff_cons))
+
+    # Make effective connections of parents 0
+    parents = clib.getParents(col, row)
+    for parent_iter in range(parents.size): 
+        parent = parents.data[parent_iter]
+        print(parent.col, parent.row)
+        eff_cons[parent.col][parent.row] = 0
+        if "Green" in buttons[parent.col][parent.row]["style"]:
+            buttons[parent.col][parent.row].configure(text=str(0))
+
+
+def updateEffectiveGreen(col, row):
+
+    # Decrement effective connections of parents of new green
+    parents = clib.getParents(col, row)
+
+    for parent_iter in range(parents.size):
+        parent = parents.data[parent_iter]
+
+        if eff_cons[parent.col][parent.row] == 0 or eff_cons[parent.col][parent.row] == None:
+            continue
+
+        eff_cons[parent.col][parent.row] = eff_cons[parent.col][parent.row] - 1
+        if "Green" in buttons[parent.col][parent.row]["style"]:
+            buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
+
+    # Calculate effective connections of new green if it hasn't been done
+    if eff_cons[col][row] == None:
+        
+        children = clib.getChildren(col, row)
+        tempEff_cons = children.size
+
+        for child_iter in range(children.size):
+            child = children.data[child_iter]
+            if "Green" in buttons[child.col][child.row]["style"]:
+                tempEff_cons = tempEff_cons -1 
+        eff_cons[col][row] = tempEff_cons
+
+    buttons[col][row].configure(text=str(eff_cons[col][row]))
+
+        
+
 
 # Functions related to scrolling
 def on_scrolly(*args):
@@ -410,7 +514,7 @@ buttons = []
 button_frames = []
 arrows = []
 ovals =  []
-ef_cons = [] # Effective connections
+eff_cons = [] # Effective connections
 
 # For undo
 colorHistory = []
@@ -423,7 +527,7 @@ temp_style = None # Style of selected button it should be when another button is
 # arrows of all other buttons.
 # Otherwise arrows generated will stay on screen until 
 # this variable is made false and a button is clicked.
-show = True
+showArrows = True
 
 # Create primary window
 root = Tk()
@@ -455,19 +559,19 @@ style = Style()
 style.theme_use("clam")
 
 # Add styles
-style.configure('TButton', bordercolor='black', borderwidth=3, font=('Helvetica', 10))
+style.configure('TButton', bordercolor='black', borderwidth=3, font=('Helvetica', 11))
 
 colors = ["Light Blue", "Green", "Purple", "Red"]
 style.map('TButton',background=[('active',"dark grey")],foreground=[('active','black'),('!disabled',"black")])
 for color in colors:
 
-    style.configure(color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
+    style.configure(color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 11))
     style.map(color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
 
-    style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 10))
+    style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 11))
     style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","red"),("!disabled","red")])
 
-    style.configure("BlueText"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 10))
+    style.configure("BlueText"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 11))
     style.map("BlueText"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","blue"),("!disabled","blue")])
 
 
@@ -491,7 +595,7 @@ while clib.moreStates():
          buttons.append([])
          arrows.append([])
          ovals.append([])
-         ef_cons.append([])
+         eff_cons.append([])
      col = state.location.col 
      row = state.location.row
 
@@ -499,7 +603,7 @@ while clib.moreStates():
                                 command = buttonClickedLambda(col, row), takefocus=True))
      arrows[col].append([])
      ovals[col].append([])
-     ef_cons[col].append(None)
+     eff_cons[col].append(None)
 # debug
 timeElapsed = datetime.datetime.now() - timeStart 
 print("Making arrays took: ", timeElapsed)
@@ -518,10 +622,10 @@ for col in range(len(buttons)):
 timeElapsed = datetime.datetime.now() - timeStart 
 print("Placing buttons took: ", timeElapsed)
 
-# Show all arrows on initialization  
-allArrowsShown = False 
-showAllArrows()
-allArrowsShown = True
+# showArrows all arrows on initialization  
+allArrowsshowArrowsn = False 
+showArrowsAllArrows()
+allArrowsshowArrowsn = True
 
 # Enables keyboard input
 # See keyPressed method for result of inputs
