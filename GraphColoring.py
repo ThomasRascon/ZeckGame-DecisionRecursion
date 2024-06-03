@@ -413,23 +413,33 @@ def giveColor(color):
     stepCounter = 0
     if (color == "Purple.TButton"):
         updateEffectivePurple(selected_button[0], selected_button[1])
-        children = clib.getChildren(selected_button[0], selected_button[1])
-        for i in range(children.size):  
-           child = children.data[i]
-           # Prevents recoloring green
-           if "Green" in buttons[child.col][child.row]["style"]:
-               continue
-           # Save child coloring before recoloring
-           colorHistory[-1].append([child.col, child.row, buttons[child.col][child.row]["style"]])
 
-           stepCounter = stepCounter+1
-           if (buttons[child.col][child.row]["style"] == "Purple.TButton" or buttons[child.col][child.row]["style"] == "GuessPurple.TButton"):
-               buttons[child.col][child.row].configure(style="Red.TButton")
-               print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", bins[child.col][child.row], "was purple")
-           else:
-               updateEffectiveGreen(child.col, child.row)
-               buttons[child.col][child.row].configure(style="Green.TButton")
-               print("      (", len(colorHistory),".",stepCounter,") Button", bins[child.col][child.row], "colored green")
+        children = clib.getChildren(selected_button[0], selected_button[1])
+        for child_iter in range(children.size):  
+            child = children.data[child_iter]
+            colorGreen(child.col, child.row, stepCounter)
+
+        parents = clib.getParents(selected_button[0], selected_button[1])
+        for parent_iter in range(parents.size):  
+            parent = parents.data[parent_iter]
+            colorGreen(parent.col, parent.row, stepCounter)
+
+
+def colorGreen(col, row, stepCounter):
+    # Prevents recoloring green
+    if "Green" in buttons[col][row]["style"]:
+        return
+    # Save child coloring before recoloring
+    colorHistory[-1].append([col, row, buttons[col][row]["style"]])
+
+    stepCounter = stepCounter+1
+    if (buttons[col][row]["style"] == "Purple.TButton" or buttons[col][row]["style"] == "GuessPurple.TButton"):
+        buttons[col][row].configure(style="Red.TButton")
+        print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", bins[col][row], "was purple")
+    else:
+        updateEffectiveGreen(col, row)
+        buttons[col][row].configure(style="Green.TButton")
+        print("      (", len(colorHistory),".",stepCounter,") Button", bins[col][row], "colored green")
 
     
 def toggleGuess():
@@ -526,8 +536,12 @@ def unupdateEffectiveGreen(col, row):
         #if "Green" in buttons[parent.col][parent.row]["style"] and [parent.col, parent.row] not in [oldColors[i][:2] for i in range(len(oldColors))]:
         #    buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
         
-    # Display bins for uncolored green
-    buttons[col][row].configure(text=bins[col][row])
+    # Display effective connections if green color is not undone.
+    # Otherwise display bins for uncolored green
+    if "Green" in buttons[col][row]["style"]:
+        buttons[col][row].configure(text=eff_cons[col][row])
+    else:
+        buttons[col][row].configure(text=bins[col][row])
 
 
 def unupdateEffectivePurple(col, row, oldColors): 
@@ -548,6 +562,11 @@ def unupdateEffectivePurple(col, row, oldColors):
             buttons[child.col][child.row].configure(text="∞")
         # Perform undo on effective connections of uncolored greens
         unupdateEffectiveGreen(child.col, child.row)
+
+    parents = clib.getParents(col, row)
+    for parent_iter in range(parents.size):  
+        parent = parents.data[parent_iter]
+        unupdateEffectiveGreen(parent.col, parent.row)
     
     # Perform undo on effective connections of uncolored greens
     # for _,child in enumerate(oldColors[1:]):
