@@ -58,7 +58,19 @@
 #     connection with no purple child. This hould throw a contradiction, but currently 
 #     doesn't
 # (2) Change
-
+# 
+#
+# Next Steps:
+# We have 2 hash maps: one for history of colors, another for history of effective 
+# connections. When color is changed, check that the respective hashmap has no entry
+# for the key of the index of the button whose color is changed. If so, do not 
+# append to the hashmap, if not, then append the color before the button's color 
+# was changed to the hashmap. Effective connections is similar.
+#
+#
+# To find if key is in hashmap use:
+# if (col, row) not in hashMap:
+#   hashMap[(col, row)] = oldValue
 
 
 
@@ -289,40 +301,20 @@ def undo():
         return 
     
     oldColors = colorHistory.pop()
-
-# Undo():
-    #   If you are undoing a green coloring, iterate through parents,
-    #   if the parent has 0 effective connections (and it is not a contradiction), then do nothing
-    #   Otherwise increment effective connections of the parent
-    #   If you are undoing a purple, then undo green colorings for the children, and 
-    #   for any parents, if the parent is green, recalculate its effective connections
-    #   In either case, make the newly uncolored effective connections None
-
+    oldEffCons = effConHistory.pop()
  
-    # Recolor everything except for the button that was selected for the coloring
-    for _,state in enumerate(oldColors[1:]):
-        buttons[state[0]][state[1]].configure(style=state[2])
-        # print(bins[state[0]][state[1]], state[2])
+    # Recolor and redisplay previous colors and effective connections
+    for state in oldColors:
+        buttons[state[0]][state[1]].configure(style=oldColors[state])
+    for state in oldEffCons:
+        buttons[state[0]][state[1]].configure(text=oldEffCons[state])
+        if "," not in str(oldEffCons[state]) and oldEffCons[state] != "∞":
+            eff_cons[state[0]][state[1]] = int(oldEffCons[state])
+        else:
+            eff_cons[state[0]][state[1]] = "∞"
     
-
-    # Start rolling back effective connections 
-    changedButton = buttons[oldColors[0][0]][oldColors[0][1]]
-    # If undoing a purple coloring or purple coloring contradiction
-    if ("Purple" in changedButton["style"] and "Guess" not in changedButton["style"]):
-        temp_style = oldColors[0][2]
-        changedButton.configure(style=temp_style)
-        unupdateEffectivePurple(oldColors[0][0], oldColors[0][1], oldColors)
-    
-    # If undoing a green coloring or green coloring contradiction
-    elif ("Green" in changedButton["style"] and "Guess" not in changedButton["style"]):
-        unupdateEffectiveGreen(oldColors[0][0], oldColors[0][1])
-    
-    # Note that neither of these conditions being met means the most recent coloring 
-    # was a toggle guess
-    temp_style = oldColors[0][2]
-    buttons[oldColors[0][0]][oldColors[0][1]].configure(style=temp_style)  
-
-    # End rolling back effective connections 
+    temp_style = "Light Blue.TButton"
+    #buttons[oldColors[0][0]][oldColors[0][1]].configure(style=temp_style)  
 
     print("Undo")
 
@@ -392,11 +384,13 @@ def giveColor(color):
         return
     
     # Save button coloring before recoloring
-    colorHistory.append([[selected_button[0], selected_button[1], temp_style]])
+    # colorHistory.append([[selected_button[0], selected_button[1], temp_style, None]])
+    colorHistory.append({})
+    colorHistory[-1][(selected_button[0], selected_button[1])] = temp_style
+    effConHistory.append({})
 
     # Stop user from coloring already colored button another color
     if (temp_style != "Light Blue.TButton" and color != temp_style):
-        # print(temp_style)
         buttons[selected_button[0]][selected_button[1]].configure(style="Red.TButton")
         print("Contradiction: Button", bins[selected_button[0]][selected_button[1]], "was", temp_style.replace(".TButton","").lower(), "so it cannot be", color.replace(".TButton","").lower())
         return
@@ -412,24 +406,39 @@ def giveColor(color):
 
     stepCounter = 0
     if (color == "Purple.TButton"):
-        updateEffectivePurple(selected_button[0], selected_button[1])
-        children = clib.getChildren(selected_button[0], selected_button[1])
-        for i in range(children.size):  
-           child = children.data[i]
-           # Prevents recoloring green
-           if "Green" in buttons[child.col][child.row]["style"]:
-               continue
-           # Save child coloring before recoloring
-           colorHistory[-1].append([child.col, child.row, buttons[child.col][child.row]["style"]])
 
-           stepCounter = stepCounter+1
-           if (buttons[child.col][child.row]["style"] == "Purple.TButton" or buttons[child.col][child.row]["style"] == "GuessPurple.TButton"):
-               buttons[child.col][child.row].configure(style="Red.TButton")
-               print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", bins[child.col][child.row], "was purple")
-           else:
-               updateEffectiveGreen(child.col, child.row)
-               buttons[child.col][child.row].configure(style="Green.TButton")
-               print("      (", len(colorHistory),".",stepCounter,") Button", bins[child.col][child.row], "colored green")
+        # Compute effective connections of children of new purple
+        removeInfiniteEffConsOfChildren(selected_button[0], selected_button[1])
+
+        children = clib.getChildren(selected_button[0], selected_button[1])
+        for child_iter in range(children.size):  
+            child = children.data[child_iter]
+            colorGreen(child.col, child.row, stepCounter)
+
+        parents = clib.getParents(selected_button[0], selected_button[1])
+        for parent_iter in range(parents.size):  
+            parent = parents.data[parent_iter]
+            colorGreen(parent.col, parent.row, stepCounter)
+
+        updateEffectivePurple(selected_button[0], selected_button[1])
+
+
+def colorGreen(col, row, stepCounter):
+    # Prevents recoloring green
+    if "Green" in buttons[col][row]["style"]:
+        return
+    # Save child coloring before recoloring
+    # colorHistory[-1].append([col, row, buttons[col][row]["style"], None])
+    if (col, row) not in colorHistory[-1]:
+        colorHistory[-1][(col, row)] = buttons[col][row]["style"]
+
+    stepCounter = stepCounter+1
+    if (buttons[col][row]["style"] == "Purple.TButton" or buttons[col][row]["style"] == "GuessPurple.TButton"):
+        buttons[col][row].configure(style="Red.TButton")
+        print("      (", len(colorHistory),".",stepCounter,") Contradiction: Button", bins[col][row], "was purple")
+    else:
+        buttons[col][row].configure(style="Green.TButton")
+        print("      (", len(colorHistory),".",stepCounter,") Button", bins[col][row], "colored green")
 
     
 def toggleGuess():
@@ -437,14 +446,18 @@ def toggleGuess():
     global colorHistory
 
     # Save button coloring before recoloring
-    colorHistory.append([[selected_button[0], selected_button[1], buttons[selected_button[0]][selected_button[1]]["style"]]])
+    # colorHistory.append([[selected_button[0], selected_button[1], None, buttons[selected_button[0]][selected_button[1]]["text"]]])
 
     if selected_button == None or temp_style == "Light Blue.TButton": 
         return
 
     if "Guess" not in temp_style:
+        # Save button coloring before recoloring
+        if (col, row) not in colorHistory[-1]:
+            colorHistory[-1][(col, row)] = buttons[selected_button[0]][selected_button[1]]["style"]
         buttons[selected_button[0]][selected_button[1]].configure(style="Guess"+temp_style)
         temp_style = "Guess"+temp_style
+
 
 # Functions related to effective connections 
 def toggleEffectiveConnections(): 
@@ -461,18 +474,22 @@ def toggleEffectiveConnections():
 
 
 def updateEffectivePurple(col, row):
-    
-    # Compute effective connections of children of new purple
-    removeInfiniteEffConsOfChildren(col, row)
+
+    # Compute effective connections of parents of newly green children
+    for state in colorHistory[-1]:
+        if state == (col, row):
+            continue
+        updateEffectiveGreen(state[0], state[1])
 
     # Make effective connections of parents 0
     parents = clib.getParents(col, row)
     for parent_iter in range(parents.size): 
         parent = parents.data[parent_iter]
 
+        if (col, row) not in effConHistory[-1]:
+            effConHistory[-1][(parent.col, parent.row)] = buttons[parent.col][parent.row]["text"]
+        buttons[parent.col][parent.row].configure(text=str(0))
         eff_cons[parent.col][parent.row] = 0
-        if "Green" in buttons[parent.col][parent.row]["style"]:
-            buttons[parent.col][parent.row].configure(text=str(0))
 
 
 def updateEffectiveGreen(col, row):
@@ -485,100 +502,31 @@ def updateEffectiveGreen(col, row):
 
         if eff_cons[parent.col][parent.row] == 0 or eff_cons[parent.col][parent.row] == "∞":
             continue
+
         
         if (eff_cons[parent.col][parent.row] == 1):
             print("Contradiction: Button", bins[col][row], "was colored green, lowering the effective connections of button", bins[parent.col][parent.row], "to 0 without a purple child")
+            if (parent.col, parent.row) not in colorHistory[-1]:
+                colorHistory[-1][(parent.col, parent.row)] = buttons[parent.col][parent.row]["style"]
             buttons[parent.col][parent.row].configure(style="Red.TButton")
-            colorHistory[-1].append([parent.col, parent.row, "Green.TButton"])
             
+        print(eff_cons[parent.col][parent.row])
         eff_cons[parent.col][parent.row] = eff_cons[parent.col][parent.row] - 1
         
         if "Green" in buttons[parent.col][parent.row]["style"] or "Red" in buttons[parent.col][parent.row]["style"]:
+            # Save parent text before updating
+            if (parent.col, parent.row) not in effConHistory[-1]:
+                effConHistory[-1][(parent.col, parent.row)] = buttons[parent.col][parent.row]["text"]
             buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
 
     # Calculate effective connections of new green if it hasn't been done
     eff_cons[col][row] = calcEffectiveConnections(col, row)
 
+    # Save text before updating
+    if (col, row) not in effConHistory[-1]:
+        effConHistory[-1][(col, row)] = buttons[col][row]["text"]
+
     buttons[col][row].configure(text=str(eff_cons[col][row]))
-
-        
-def unupdateEffectiveGreen(col, row):
-
-    # Increment effective connections of parents of old green
-    parents = clib.getParents(col, row)
-
-    for parent_iter in range(parents.size):
-        parent = parents.data[parent_iter]
-        if eff_cons[parent.col][parent.row] == "∞":
-            continue
-
-        # Typical case
-        eff_cons[parent.col][parent.row] = eff_cons[parent.col][parent.row] + 1
-
-        # To get correct effective connections when uncoloring a contradiction
-        if eff_cons[parent.col][parent.row] == 0:
-            eff_cons[parent.col][parent.row] = calcEffectiveConnections(parent.col, parent.row)
-
-        if "Green" in buttons[parent.col][parent.row]["style"]:
-            buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
-
-        # If the parent is green and not being uncolored as well (this happens during purple uncolorings)
-        #if "Green" in buttons[parent.col][parent.row]["style"] and [parent.col, parent.row] not in [oldColors[i][:2] for i in range(len(oldColors))]:
-        #    buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
-        
-    # Display bins for uncolored green
-    buttons[col][row].configure(text=bins[col][row])
-
-
-def unupdateEffectivePurple(col, row, oldColors): 
-
-    # If you are undoing a purple, then undo green colorings for the children, and 
-    # for any parents, if the parent is green, recalculate its effective connections
-    # In either case, display bins for newly uncolored nodes
-
-    # Compute effective connections of children of new purple:
-    # Check if the connection was a combine on zero
-    children = clib.getChildren(col, row)
-    for child_iter in range(children.size): 
-        child = children.data[child_iter]
-        # Give combine on zero children infinite effective connections.
-        # Note that all green nodes have exactly one combine on zero parent.
-        if checkCombineOnZero(col, row, child.col, child.row):
-            eff_cons[child.col][child.row] = "∞"
-            buttons[child.col][child.row].configure(text="∞")
-        # Perform undo on effective connections of uncolored greens
-        unupdateEffectiveGreen(child.col, child.row)
-    
-    # Perform undo on effective connections of uncolored greens
-    # for _,child in enumerate(oldColors[1:]):
-    #    unupdateEffectiveGreen(child[0], child[1]) 
-        
-    # Recompute effective connections of parents
-    parents = clib.getParents(col, row)
-    for parent_iter in range(parents.size): 
-        parent = parents.data[parent_iter]
-
-        hasCombineOnZeroParent = False
-        grandParents = clib.getParents(parent.col, parent.row)
-        for grandParent_iter in range(grandParents.size): 
-            grandParent = grandParents.data[grandParent_iter]
-            #print(bins[parent.col][parent.row], buttons[grandParent.col][grandParent.row]["style"], bins[grandParent.col][grandParent.row])
-            if "Purple" not in buttons[grandParent.col][grandParent.row]["style"]:
-                continue
-            if checkCombineOnZero(grandParent.col, grandParent.row, parent.col, parent.row):
-                hasCombineOnZeroParent = True 
-                # print(grandParent.col, grandParent.row, parent.col, parent.row)
-                break 
-        if hasCombineOnZeroParent:
-            eff_cons[parent.col][parent.row] = calcEffectiveConnections(parent.col, parent.row)
-        else: 
-            eff_cons[parent.col][parent.row] = "∞"
-
-        if "Green" in buttons[parent.col][parent.row]["style"]:
-            buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
-
-    # Display bins for uncolored purple 
-    buttons[col][row].configure(text=bins[col][row])
 
 
 def calcEffectiveConnections(col, row):
@@ -602,14 +550,14 @@ def calcEffectiveConnections(col, row):
     
     return effectiveConnections
 
+# def hasOtherPurpleParent(purpleCol, purpleRow, greenCol, greenRow): 
+#     parents = clib.getParents(greenCol, greenRow)
+#     for parent_iter in range(parents.size): 
+#         parent = parents.data[parent_iter]
+#         if (parent.col, parent.row) == 
+#     return
 
 def removeInfiniteEffConsOfChildren(col, row):
-    # Curr = purple node
-    # For child in children:
-    #    k = child.bins[1] - curr.bins[1]
-    #    If (k > 0 and curr.bins[0] - child.bins[0] == 2*k):
-    #           Flag child as combine on zero
-
     children = clib.getChildren(col, row)
     for child_iter in range(children.size):
         child = children.data[child_iter]
@@ -620,6 +568,9 @@ def removeInfiniteEffConsOfChildren(col, row):
             eff_cons[child.col][child.row] = calcEffectiveConnections(child.col, child.row)
         # Regardless of the if statement above, since this function is only called on purple 
         # colorings, we display the child's effective connections, because it is green
+        #colorHistory[-1].append([child.col, child.row, "Green.TButton", buttons[child.col][child.row]["text"]])
+        if (col, row) not in effConHistory[-1]:
+            effConHistory[-1][(child.col, child.row)] = buttons[child.col][child.row]["text"]
         buttons[child.col][child.row].configure(text=str(eff_cons[child.col][child.row]))
 
 def checkCombineOnZero(parentCol, parentRow, childCol, childRow):
@@ -654,7 +605,8 @@ ovals =  []
 
 
 # For undo
-colorHistory = []
+colorHistory =  []
+effConHistory = []
 
 # Effective connections
 eff_cons = [] 
