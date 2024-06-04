@@ -78,6 +78,7 @@ from tkinter import *
 from tkinter.ttk import *
 import numpy as np
 import ctypes
+import copy
 import os
 import datetime
 
@@ -378,6 +379,7 @@ def giveColor(color):
     global selected_button
     global temp_style
     global colorHistory
+    global effConHistory
 
     # If you assign the same color to a button twice do nothing
     if (temp_style == color):
@@ -408,10 +410,10 @@ def giveColor(color):
     if (color == "Purple.TButton"):
 
         # Compute effective connections of children of new purple
-        removeInfiniteEffConsOfChildren(selected_button[0], selected_button[1])
+        removeInfiniteEffConsOfChildren(selected_button[0], selected_button[1])         
 
         children = clib.getChildren(selected_button[0], selected_button[1])
-        for child_iter in range(children.size):  
+        for child_iter in range(children.size): 
             child = children.data[child_iter]
             colorGreen(child.col, child.row, stepCounter)
 
@@ -474,13 +476,6 @@ def toggleEffectiveConnections():
 
 
 def updateEffectivePurple(col, row):
-
-    # Compute effective connections of parents of newly green children
-    for state in colorHistory[-1]:
-        if state == (col, row):
-            continue
-        updateEffectiveGreen(state[0], state[1])
-
     # Make effective connections of parents 0
     parents = clib.getParents(col, row)
     for parent_iter in range(parents.size): 
@@ -491,12 +486,18 @@ def updateEffectivePurple(col, row):
         buttons[parent.col][parent.row].configure(text=str(0))
         eff_cons[parent.col][parent.row] = 0
 
+    # Compute effective connections of parents of newly green children
+    temp_history = copy.deepcopy(colorHistory[-1])
+    for state in temp_history:
+        if state == (col, row):
+            continue
+        updateEffectiveGreen(state[0], state[1])
+
 
 def updateEffectiveGreen(col, row):
 
     # Decrement effective connections of parents of new green
     parents = clib.getParents(col, row)
-
     for parent_iter in range(parents.size):
         parent = parents.data[parent_iter]
 
@@ -510,7 +511,6 @@ def updateEffectiveGreen(col, row):
                 colorHistory[-1][(parent.col, parent.row)] = buttons[parent.col][parent.row]["style"]
             buttons[parent.col][parent.row].configure(style="Red.TButton")
             
-        print(eff_cons[parent.col][parent.row])
         eff_cons[parent.col][parent.row] = eff_cons[parent.col][parent.row] - 1
         
         if "Green" in buttons[parent.col][parent.row]["style"] or "Red" in buttons[parent.col][parent.row]["style"]:
@@ -520,7 +520,7 @@ def updateEffectiveGreen(col, row):
             buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
 
     # Calculate effective connections of new green if it hasn't been done
-    eff_cons[col][row] = calcEffectiveConnections(col, row)
+    # eff_cons[col][row] = calcEffectiveConnections(col, row)
 
     # Save text before updating
     if (col, row) not in effConHistory[-1]:
@@ -542,11 +542,9 @@ def calcEffectiveConnections(col, row):
 
         if "Purple" in buttons[child.col][child.row]["style"]:
             effectiveConnections = 0 
-            #print("purple on", col, row)
             break 
         elif "Green" in buttons[child.col][child.row]["style"]:
             effectiveConnections = effectiveConnections - 1
-            #print("green on", child.col, child.row, "for", col, row)
     
     return effectiveConnections
 
