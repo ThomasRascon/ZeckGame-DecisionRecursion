@@ -1,17 +1,17 @@
 # TODO: 
-# [1.)]display move history (ex: move (2,3) colored green)
+#[ 1.)]display move history (ex: move (2,3) colored green)
 #     alternatively export history to text file 
 #     Branch the history for guesses:
 #          If you guess on move 18, call that move 18a, then the 
 #          next move move 19a
-# [2.)]Clicking a node highlights forward connection and backward 
+#[ 2.)]Clicking a node highlights forward connection and backward 
 #     connection edges and nodes
-# [3.)] Generate with no connections/ toggle showing connections
-# [4.)]Click state to select, click color to color 
-# [5.)]Button for coloring all children and parents green (don't double color)
-# [6.)]Undo button (visually restore, and delete from history)
-# [7.)]Option for visually distinguishing guesses
-#  8.) Display effective connections, and whether a button has a purple child
+#[ 3.)] Generate with no connections/ toggle showing connections
+#[ 4.)]Click state to select, click color to color 
+#[ 5.)]Button for coloring all children and parents green (don't double color)
+#[ 6.)]Undo button (visually restore, and delete from history)
+#[ 7.)]Option for visually distinguishing guesses
+#[ 8.)]Display effective connections, and whether a button has a purple child
 #  9.) Add right click to showArrows connections without selection button
 # 10.) Save log to file with keypress
 #           Store log as list of strings, which gets popped on undos
@@ -32,45 +32,6 @@
 # to toggle between making button text effective connections where possible 
 # (which is when a button is green and has no purple children), and bins
 #
-#
-# Effective Connections Notes:
-# Undo():
-#   If you are undoing a green coloring, iterate through parents,
-#   if the parent has 0 effective connections (and it is not a contradiction), then do nothing
-#   Otherwise increment effective connections of the parent
-#   If you are undoing a purple, then undo green colorings for the children, and 
-#   for any parents, if the parent is green, recalculate its effective connections
-#   In either case, make the newly uncolored effective connections None
-# 
-# Throw contradiction if green has 0 effective connections without purple child.
-# 
-#
-#
-# Handling ∞:
-# Every node has a boolean, infiniteEffConnections, that is true by default
-# When it is true the effective connections will display ∞, although they 
-# will be calculated as normal.
-# When a node is colored purple, its combine on zero children's infiniteEffConnections 
-# flags are made false
-#
-# Debug Notes:
-# (1) Coloring a purple can color greens which cause other greens to have 0 effective 
-#     connection with no purple child. This hould throw a contradiction, but currently 
-#     doesn't
-# (2) Change
-# 
-#
-# Next Steps:
-# We have 2 hash maps: one for history of colors, another for history of effective 
-# connections. When color is changed, check that the respective hashmap has no entry
-# for the key of the index of the button whose color is changed. If so, do not 
-# append to the hashmap, if not, then append the color before the button's color 
-# was changed to the hashmap. Effective connections is similar.
-#
-#
-# To find if key is in hashmap use:
-# if (col, row) not in hashMap:
-#   hashMap[(col, row)] = oldValue
 
 
 
@@ -93,7 +54,7 @@ clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
                                                             #
 # First index is the number of tokens in the first bin      #
 # on the initial state                                      #
-clib.build(14,0)                                            #
+clib.build(25,0)                                            #
                                                             #
 # Geometry variables                                        #
 r = 5 # circle radius for base of arrows                    #
@@ -303,10 +264,18 @@ def undo():
     
     oldColors = colorHistory.pop()
     oldEffCons = effConHistory.pop()
- 
+
     # Recolor and redisplay previous colors and effective connections
     for state in oldColors:
         buttons[state[0]][state[1]].configure(style=oldColors[state])
+    
+    # This allows recoloring of a button after undoing without a contradiction.
+    # Namely, giveColor() checks temp_style against the style of the selected button 
+    # to determine if the user is trying to color a green purple or vice versa;
+    # without the below line, coloring green, then undoing, then coloring purple will 
+    # throw a contradiction.
+    temp_style = buttons[selected_button[0]][selected_button[1]]["style"].removeprefix("BlueText")
+    
     for state in oldEffCons:
         buttons[state[0]][state[1]].configure(text=oldEffCons[state])
         if "," not in str(oldEffCons[state]) and oldEffCons[state] != "∞":
@@ -314,10 +283,8 @@ def undo():
         else:
             eff_cons[state[0]][state[1]] = "∞"
     
-    temp_style = "Light Blue.TButton"
-    #buttons[oldColors[0][0]][oldColors[0][1]].configure(style=temp_style)  
-
     print("Undo")
+
 
 def buttonClickedLambda(col, row):
     return lambda: buttonClicked(col, row)
@@ -331,16 +298,21 @@ def buttonClicked(col, row):
     global grid_y
     global show
 
+    # The below line is for debugging
     # print("Button (", buttons[col][row]["text"], ") clicked")
-    
 
     # Overall, what these conditionals do is as follows:
-        # If there was a selected button when you clicked, 
-        # return it to its original style, called temp_style.
-        # If the button you clicked was already selected,
-        # do nothing. Consider this case to be user error.
-        # Otherwise save the clicked button's style as temp_style 
-        # and make it selected
+        # If you select the same button multiple times 
+        # consecutively, do nothing. Consider this case 
+        # to be user error.
+        # If there was a previously selected button when you 
+        # clicked, return it to the unselected version of its style, 
+        # which is its current style, but without blue text.
+        # This always be the case except for first time selecting 
+        # a button after running the program.
+        # Either way, we then save the clicked button's style as 
+        # temp_style and make it selected. 
+        # temp_stlye is used heavily in giveColor(), and once in undo()
 
     if selected_button == [col,row]:
         return
@@ -381,12 +353,12 @@ def giveColor(color):
     global colorHistory
     global effConHistory
 
-    # If you assign the same color to a button twice do nothing
-    if (temp_style == color):
+    # If no button has been clicked, or you try to assign a 
+    # new color to a colored button, do nothing
+    if (temp_style == None or "Light Blue" not in temp_style):
         return
     
     # Save button coloring before recoloring
-    # colorHistory.append([[selected_button[0], selected_button[1], temp_style, None]])
     colorHistory.append({})
     colorHistory[-1][(selected_button[0], selected_button[1])] = temp_style
     effConHistory.append({})
@@ -447,16 +419,14 @@ def toggleGuess():
     global temp_style
     global colorHistory
 
-    # Save button coloring before recoloring
-    # colorHistory.append([[selected_button[0], selected_button[1], None, buttons[selected_button[0]][selected_button[1]]["text"]]])
-
     if selected_button == None or temp_style == "Light Blue.TButton": 
         return
 
     if "Guess" not in temp_style:
         # Save button coloring before recoloring
-        if (col, row) not in colorHistory[-1]:
-            colorHistory[-1][(col, row)] = buttons[selected_button[0]][selected_button[1]]["style"]
+        colorHistory.append({})
+        colorHistory[-1][(selected_button[0], selected_button[1])] = buttons[selected_button[0]][selected_button[1]]["style"]
+        effConHistory.append({}) # undo() will iterate through nothing in this case
         buttons[selected_button[0]][selected_button[1]].configure(style="Guess"+temp_style)
         temp_style = "Guess"+temp_style
 
@@ -513,15 +483,17 @@ def updateEffectiveGreen(col, row):
             
         eff_cons[parent.col][parent.row] = eff_cons[parent.col][parent.row] - 1
         
-        if "Green" in buttons[parent.col][parent.row]["style"] or "Red" in buttons[parent.col][parent.row]["style"]:
+        if "Green" in buttons[parent.col][parent.row]["style"] or "Red" in buttons[parent.col][parent.row]["style"] and allChildrenShown(parent.col, parent.row):
             # Save parent text before updating
             if (parent.col, parent.row) not in effConHistory[-1]:
                 effConHistory[-1][(parent.col, parent.row)] = buttons[parent.col][parent.row]["text"]
             buttons[parent.col][parent.row].configure(text=str(eff_cons[parent.col][parent.row]))
 
-    # Calculate effective connections of new green if it hasn't been done
-    # eff_cons[col][row] = calcEffectiveConnections(col, row)
-
+    # Don't display bins if button has combine on 1 nodes not shown in  
+    # particular case generated
+    if not allChildrenShown(col, row):
+        return
+    
     # Save text before updating
     if (col, row) not in effConHistory[-1]:
         effConHistory[-1][(col, row)] = buttons[col][row]["text"]
@@ -548,17 +520,16 @@ def calcEffectiveConnections(col, row):
     
     return effectiveConnections
 
-# def hasOtherPurpleParent(purpleCol, purpleRow, greenCol, greenRow): 
-#     parents = clib.getParents(greenCol, greenRow)
-#     for parent_iter in range(parents.size): 
-#         parent = parents.data[parent_iter]
-#         if (parent.col, parent.row) == 
-#     return
 
 def removeInfiniteEffConsOfChildren(col, row):
     children = clib.getChildren(col, row)
     for child_iter in range(children.size):
         child = children.data[child_iter]
+
+        # Don't display bins if button has combine on 1 nodes not shown in  
+        # particular case generated
+        if not allChildrenShown(child.col, child.row): 
+            continue
 
         # If the child is a combine on 0 child, then give it finite effective connections
         if (checkCombineOnZero(col, row, child.col, child.row)):
@@ -566,10 +537,13 @@ def removeInfiniteEffConsOfChildren(col, row):
             eff_cons[child.col][child.row] = calcEffectiveConnections(child.col, child.row)
         # Regardless of the if statement above, since this function is only called on purple 
         # colorings, we display the child's effective connections, because it is green
-        #colorHistory[-1].append([child.col, child.row, "Green.TButton", buttons[child.col][child.row]["text"]])
         if (col, row) not in effConHistory[-1]:
             effConHistory[-1][(child.col, child.row)] = buttons[child.col][child.row]["text"]
         buttons[child.col][child.row].configure(text=str(eff_cons[child.col][child.row]))
+
+        # childSmallestBin = int(bins[child.col][child.row].split(",")[-1:][0])
+        # childSecondSmallestBin = int(bins[child.col][child.row].split(",")[-2:][0])
+
 
 def checkCombineOnZero(parentCol, parentRow, childCol, childRow):
 
@@ -582,6 +556,12 @@ def checkCombineOnZero(parentCol, parentRow, childCol, childRow):
 
     return diffSecondSmallest > 0 and currSmallestBin - childSmallestBin == 2*diffSecondSmallest
 
+
+def allChildrenShown(col, row):
+    secondSmallestBin  = int(bins[col][row].split(",")[-2:][0])
+    smallestBin  = int(bins[col][row].split(",")[-1:][0])
+    return secondSmallestBin < smallestBin
+        
 # Functions related to scrolling
 def on_scrolly(*args):
     canvas.yview(*args)
@@ -614,7 +594,7 @@ bins = []
 
 # Selected button variables
 selected_button = None # 1D list of length 2. 0th index is col, 1st index is row
-temp_style = None # Style of selected button it should be when another button is selected
+temp_style = None # The style a selected button was before it was selected
 
 # If this is false, then clicking on one button deletes 
 # arrows of all other buttons.
@@ -681,9 +661,8 @@ while clib.moreStates():
          tempBins += str(ord(state.bins[i])) + ","
      tempBins = tempBins[:-1]
 
-     # Add new element for current bin
-     # If we are on a new col, add new list 
-     # for that col
+     # Add new element for current bin.
+     # If we are on a new col, add new list for that col
      if col != state.location.col:
          buttons.append([])
          arrows.append([])
