@@ -54,7 +54,7 @@ clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
                                                             #
 # First index is the number of tokens in the first bin      #
 # on the initial state                                      #
-clib.build(25,0)                                            #
+clib.build(20,0)                                            #
                                                             #
 # Geometry variables                                        #
 r = 5 # circle radius for base of arrows                    #
@@ -64,6 +64,7 @@ grid_x       = 120 # grid spacing in x direction of buttons #
 grid_y       = 50  # grid spacing in y direction of buttons #
 windowWidth  = 1300                                         #
 windowHeight = 450                                          #
+fontSize     = 8                                            #
                                                             #
 #############################################################
 
@@ -632,19 +633,19 @@ style = Style()
 style.theme_use("clam")
 
 # Add styles
-style.configure('TButton', bordercolor='black', borderwidth=3, font=('Helvetica', 11))
+style.configure('TButton', bordercolor='black', borderwidth=3, font=('Helvetica', fontSize))
 
 colors = ["Light Blue", "Green", "Purple", "Red"]
 style.map('TButton',background=[('active',"dark grey")],foreground=[('active','black'),('!disabled',"black")])
 for color in colors:
 
-    style.configure(color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 11))
+    style.configure(color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', fontSize))
     style.map(color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","black"),("!disabled","black")])
 
-    style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', 11))
+    style.configure("Guess"+color+".TButton", bordercolor='black', borderwidth=3, font=('Helvetica', fontSize))
     style.map("Guess"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","red"),("!disabled","red")])
 
-    style.configure("BlueText"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', 11))
+    style.configure("BlueText"+color+".TButton", bordercolor='blue', borderwidth=3, font=('Helvetica', fontSize))
     style.map("BlueText"+color+".TButton",background=[("active","dark grey"),("!disabled",color)],foreground=[("active","blue"),("!disabled","blue")])
 
 
