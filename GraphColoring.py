@@ -561,7 +561,7 @@ def checkCombineOnZero(parentCol, parentRow, childCol, childRow):
 def allChildrenShown(col, row):
     secondSmallestBin  = int(bins[col][row].split(",")[-2:][0])
     smallestBin  = int(bins[col][row].split(",")[-1:][0])
-    return secondSmallestBin < smallestBin
+    return secondSmallestBin <= smallestBin
         
 # Functions related to scrolling
 def on_scrolly(*args):
