@@ -17,23 +17,23 @@ extern "C" void build(int size, int stop) {
 }//EOF build
 
 
-extern "C" PairVector getParents(int col, int row) {
+extern "C" LocVector getParents(int col, int row) {
     if(col < 0 || row < 0 || col >= columns.size() || row >= columns[col].size()){
         printf("Did not find location.");
         exit(1);
     }
     GameState* state = columns[col][row];
-    return PairVector{state->parents.data(), state->parents.size()};
+    return LocVector{state->parents.data(), state->parents.size()};
 }//EOF getParents
 
 
-extern "C" PairVector getChildren(int col, int row) {
+extern "C" LocVector getChildren(int col, int row) {
     if(col < 0 || row < 0 || col >= columns.size() || row >= columns[col].size()){
         printf("Did not find location.");
         exit(1);
     }
     GameState* state = columns[col][row];
-    return PairVector{state->children.data(), state->children.size()};
+    return LocVector{state->children.data(), state->children.size()};
 }//EOF getChildren
 
 
