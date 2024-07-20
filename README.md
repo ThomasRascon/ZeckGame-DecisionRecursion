@@ -4,16 +4,6 @@ For information on usage of the GUI, such as controls and parameters, see the do
 
 <h2>Installation instructions:</h2>
 
-<h4>Mac/ Linux:</h4>
-First make sure that you have git, python, and the g++ compiler installed, then run the fpllowing command to copy the files from this repository to your computer: <br>
-git clone https://github.com/ThomasRascon/ZeckGame-DecisionRecursion.git
-
-Then navigate to the folder where this repository is downloaded, and compile the c++ programs for use with the GUI. This is only ever necessary to do once: <br>
-g++ -shared -o clibrary.so -fPIC -std=c++17 GraphStructure.cpp ZeckGame.cpp 
-
-Then you may run the GUI with the following command: <br>
-python3 GraphColoring.py
-
 <h4>Windows:</h4>
 First download git and docker desktop. Docker desktop can be downloaded at the following link: <br>
 https://docs.docker.com/desktop/install/windows-install/
@@ -23,6 +13,16 @@ git clone https://github.com/ThomasRascon/ZeckGame-DecisionRecursion.git
 
 Now open docker desktop to start docker, navigate to where this repository was cloned to on your computer, and run compileProgram.bat, followed by runProgram.bat <br>
 If you close the program, and want to run it again without changing aby parameters, simply run the file runProgram.bat again. If you change any parameters, you must run compileProgram.bat for your changes to be reflected in a run. If you turn off your computer, and want to run the program again, run docker desktop, and run runProgram.bat.
+
+<h4>Cloning and Running</h4>
+First make sure that you have git, python, and the g++ compiler installed, then run the fpllowing command to copy the files from this repository to your computer: <br>
+git clone https://github.com/ThomasRascon/ZeckGame-DecisionRecursion.git
+
+Then navigate to the folder where this repository is downloaded, and compile the c++ programs for use with the GUI. This is only ever necessary to do once: <br>
+g++ -shared -o clibrary.so -fPIC -std=c++17 GraphStructure.cpp ZeckGame.cpp 
+
+Then you may run the GUI with the following command: <br>
+python3 GraphColoring.py
 
 <h2>GUI Usage Instructions</h2>
 The following parameters can be editted at the top of GraphColoring.py:
