@@ -12,7 +12,7 @@ Run the following command to copy the files from this repository to your compute
 git clone https://github.com/ThomasRascon/ZeckGame-DecisionRecursion.git
 
 Now open docker desktop to start docker, navigate to where this repository was cloned to on your computer, and run compileProgram.bat, followed by runProgram.bat <br>
-If you close the program, and want to run it again without changing aby parameters, simply run the file runProgram.bat again. If you change any parameters, you must run compileProgram.bat for your changes to be reflected in a run. If you turn off your computer, and want to run the program again, run docker desktop, and run runProgram.bat.
+If you close the program, and want to run it again without changing any parameters, simply run the file runProgram.bat again. If you change any parameters, you must run compileProgram.bat for your changes to be reflected in a run. If you turn off your computer, and want to run the program again, run docker desktop, and run runProgram.bat.
 
 <h4>Mac/Linux</h4>
 First make sure that you have git, python, and the g++ compiler installed, then run the fpllowing command to copy the files from this repository to your computer: <br>
@@ -39,10 +39,10 @@ fontSize:        Size of font in buttons                                       <
 
 
 <h4>Keyboard controls:</h4>
-e colors green<br>
-q colors purple<br>
-w toggles guess<br>
-s toggles variable "show" which determines if clicking a button erases all arrows on screen, which is on by default, meaning that arrows will not get erased when clicking<br>
-a shows all arrows for all connections<br>
-z undoes previous coloring<br>
+e - colors green<br>
+q - colors purple<br>
+w - toggles guess<br>
+s - toggles variable "show" which determines if clicking a button erases all arrows on screen, which is on by default, meaning that arrows will not get erased when clicking<br>
+a - shows all arrows for all connections<br>
+z - undoes previous coloring<br>
 
