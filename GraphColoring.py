@@ -1,40 +1,3 @@
-# TODO: 
-#[ 1.)]display move history (ex: move (2,3) colored green)
-#     alternatively export history to text file 
-#     Branch the history for guesses:
-#          If you guess on move 18, call that move 18a, then the 
-#          next move move 19a
-#[ 2.)]Clicking a node highlights forward connection and backward 
-#     connection edges and nodes
-#[ 3.)] Generate with no connections/ toggle showing connections
-#[ 4.)]Click state to select, click color to color 
-#[ 5.)]Button for coloring all children and parents green (don't double color)
-#[ 6.)]Undo button (visually restore, and delete from history)
-#[ 7.)]Option for visually distinguishing guesses
-#[ 8.)]Display effective connections, and whether a button has a purple child
-#  9.) Add right click to showArrows connections without selection button
-# 10.) Save log to file with keypress
-#           Store log as list of strings, which gets popped on undos
-#
-# Keyboard Controls:
-# e colors green, q color purple, w toggles guess,
-# s toggles variable "show", which determines if clicking a button 
-# erases all arrows on screen, which is on by default, meaning that 
-# arrows will not get erased when clicking,
-# a show all arrows for all connections
-# z undoes previous coloring
-#
-# Notes:
-# Nothing will render above a button on a canvas, so placing text 
-# widgets on top of buttons with their effective connections is not 
-# possible.
-# As such, the next best solution I could think of is to have a function 
-# to toggle between making button text effective connections where possible 
-# (which is when a button is green and has no purple children), and bins
-#
-
-
-
 from tkinter import *
 from tkinter.ttk import *
 import numpy as np
@@ -52,6 +15,7 @@ clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
 
 #############################################################
                                                             #
+# VERY IMPORTANT!!!!!                                       #  
 # First index is the number of tokens in the first bin      #
 # on the initial state                                      #
 clib.build(30,0)                                            #
