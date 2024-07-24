@@ -6,22 +6,22 @@
 #include <queue>
 
 
-struct Pair {
+struct Loc {
     int col;
     int row;
-};//EOF Pair struct
+};//EOF Loc struct
 
 
-struct PairVector {
-    Pair* data;
+struct LocVector {
+    Loc* data;
     size_t size;
-};//EOF PairVector struct
+};//EOF LocVector struct
 
 
 struct State {
     const char* bins;
     size_t size;
-    Pair location;
+    Loc location;
 };//EOF State struct
 
 
@@ -39,16 +39,16 @@ struct VectorHash {
 
 struct GameState {
     const std::vector<char> bins;
-    const Pair location;
-    std::vector<Pair> children;
-    std::vector<Pair> parents;
+    const Loc location;
+    std::vector<Loc> children;  //Location of the child in THE columns vector
+    std::vector<Loc> parents;   //Location of the parent in THE columns vector
 
 
     /**
      * Constructor for the start state.
      * param: size The game size.
      */
-    GameState(int size) : bins(createBins(size)), location(Pair{0,0}){} //EOF constructor
+    GameState(int size) : bins(createBins(size)), location(Loc{0,0}){} //EOF constructor
 
 
     /**
@@ -56,7 +56,7 @@ struct GameState {
      * param: bins The bins of the state to be constructed.
      */
     GameState(const std::vector<char>& bins, int col, int row) :
-        bins(bins), location(Pair{col,row}) {} //EOF override-constructor
+        bins(bins), location(Loc{col,row}) {} //EOF override-constructor
 
     private:
         //Helper for start state constructor

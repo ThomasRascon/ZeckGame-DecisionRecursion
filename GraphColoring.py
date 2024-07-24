@@ -54,7 +54,7 @@ clib = ctypes.CDLL(os.path.join(path, 'clibrary.so'))
                                                             #
 # First index is the number of tokens in the first bin      #
 # on the initial state                                      #
-clib.build(20,0)                                            #
+clib.build(30,0)                                            #
                                                             #
 # Geometry variables                                        #
 r = 5 # circle radius for base of arrows                    #
@@ -69,25 +69,25 @@ fontSize     = 8                                            #
 #############################################################
 
 # Definitions of clib functions
-class Pair(ctypes.Structure):
+class Loc(ctypes.Structure):
     _fields_ = [("col", ctypes.c_int), ("row", ctypes.c_int)]
 
-class PairVector(ctypes.Structure):
-    _fields_ = [("data", ctypes.POINTER(Pair)),
+class LocVector(ctypes.Structure):
+    _fields_ = [("data", ctypes.POINTER(Loc)),
                 ("size", ctypes.c_size_t)]
 
 class State(ctypes.Structure):
     _fields_ = [("bins", ctypes.POINTER(ctypes.c_char)),
                 ("size", ctypes.c_size_t),
-                ("location", Pair)]
+                ("location", Loc)]
 
 clib.build.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getParents.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.getChildren.argtypes = [ctypes.c_int, ctypes.c_int]
 clib.columnHeight.argtypes = [ctypes.c_int]
 
-clib.getParents.restype = PairVector
-clib.getChildren.restype = PairVector
+clib.getParents.restype = LocVector
+clib.getChildren.restype = LocVector
 clib.getState.restype = State
 clib.columnHeight.restype = ctypes.c_int
 
